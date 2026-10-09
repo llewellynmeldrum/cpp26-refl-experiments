@@ -1,0 +1,65 @@
+name: Ubuntu
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  BUILD_TYPE: Release
+  INSTALL_LOCATION: .local
+  CPM_SOURCE_CACHE: ${{ github.workspace }}/.cpm-cache
+  LLVM_VERSION: 22
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')"
+
+    steps:
+    - uses: actions/checkout@v7
+      
+    - name: cache CPM downloads
+      uses: actions/cache@v5
+      with:
+        path: ${{ env.CPM_SOURCE_CACHE }}
+        key: ${{ runner.os }}-cpm-${{ hashFiles('CMakeLists.txt', 'cmake/**', 'test/**') }}
+
+    - name: configure
+      run: cmake -Bbuild -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/$INSTALL_LOCATION -DCPM_SOURCE_CACHE=$CPM_SOURCE_CACHE -Dexpected_fs_CXX_STANDARD=23 -Dexpected_fs_ENABLE_CODE_COVERAGE=1
+      
+    - name: build
+      run: cmake --build build --config $BUILD_TYPE -j4
+
+    - name: run tests
+      run: |
+        cd build
+        ctest -C $BUILD_TYPE -VV
+
+    - name: install clang tools
+      run: |
+        curl -fsSL https://apt.llvm.org/llvm-snapshot.gpg.key | sudo gpg --dearmor -o /usr/share/keyrings/apt.llvm.org.gpg
+        echo "deb [signed-by=/usr/share/keyrings/apt.llvm.org.gpg] http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs)-$LLVM_VERSION main" | sudo tee /etc/apt/sources.list.d/llvm-toolchain.list
+        sudo apt-get update
+        sudo apt-get install -y clang-format-$LLVM_VERSION clang-tidy-$LLVM_VERSION
+
+    - name: check formatting
+      run: |
+        clang-format-$LLVM_VERSION --dry-run --Werror \
+          include/expected_fs/expected_fs.hpp \
+          include/expected_fs/result_domains/tl_expected.hpp \
+          test/src/expected_fs_test.cpp \
+          test/src/tl_expected_integration_test.cpp
+
+    - name: run clang-tidy
+      run: clang-tidy-$LLVM_VERSION -p build test/src/expected_fs_test.cpp test/src/tl_expected_integration_test.cpp --quiet
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v7
+      with:
+        fail_ci_if_error: false
+
+    - name: install project
+      run: cmake --build build --target install --config Release 

@@ -130,6 +130,17 @@ target_include_directories(${APP_NAME} SYSTEM PRIVATE
     "${CMAKE_SOURCE_DIR}/external/toml++/include"
 )
 
+# expected-FS
+# ---------------------------------------
+target_include_directories(${APP_NAME} PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/expected-fs/include"
+)
+FetchContent_Declare(expected_fs SOURCE_DIR
+    "${CMAKE_SOURCE_DIR}/external/expected-fs"
+)
+FetchContent_MakeAvailable(expected_fs)
+target_link_libraries(${APP_NAME} PRIVATE expected_fs::expected_fs)
+
 
 
 

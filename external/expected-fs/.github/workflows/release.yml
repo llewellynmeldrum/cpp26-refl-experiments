@@ -1,0 +1,175 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  PROJECT_NAME: "expected_fs"
+  BUILD_TYPE: Release
+  CPM_SOURCE_CACHE: ${{ github.workspace }}/.cpm-cache
+
+jobs:
+  build:
+    name: ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+        - {
+            name: "Windows Latest MSVC",
+            artifact_ext: '.zip',
+            os: windows-latest,
+            cc: "cl",
+            cxx: "cl",
+            environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat",
+          }
+        - {
+            name: "Ubuntu Latest GCC",
+            artifact_ext: '.tar.gz',
+            os: ubuntu-latest,
+            cc: "gcc",
+            cxx: "g++",
+          }
+        - {
+            name: "macOS Latest Clang",
+            artifact_ext: '.tar.gz',
+            os: macos-latest,
+            cc: "clang",
+            cxx: "clang++",
+          }
+
+    steps:
+    - name: set version name (Windows)
+      id: version_win
+      if: ${{ runner.os == 'Windows' }}
+      shell: pwsh
+      run: |
+        $TAG = (${env:GITHUB_REF} -replace 'refs/tags/', '')
+        echo "name=$TAG" >> ${env:GITHUB_OUTPUT}
+    
+    - name: set version name
+      id: version
+      if: ${{ runner.os != 'Windows' }}
+      run: |
+        TAG=${GITHUB_REF#refs/tags/}
+        echo "name=$TAG" >> "$GITHUB_OUTPUT"
+
+    - name: Checkout
+      uses: actions/checkout@v7
+      with:
+        submodules: recursive
+
+    - name: cache CPM downloads
+      uses: actions/cache@v5
+      with:
+        path: ${{ env.CPM_SOURCE_CACHE }}
+        key: ${{ runner.os }}-cpm-${{ hashFiles('CMakeLists.txt', 'cmake/**', 'test/**') }}
+
+    - name: configure (Windows)
+      if: ${{ runner.os == 'Windows' }}
+      run: cmake -Bbuild -DCMAKE_INSTALL_PREFIX="$HOME/.local" -DCPM_SOURCE_CACHE="$env:CPM_SOURCE_CACHE"
+
+    - name: configure
+      if: ${{ runner.os != 'Windows' }}
+      run: cmake -Bbuild -DCMAKE_INSTALL_PREFIX="$HOME/.local" -DCPM_SOURCE_CACHE="$CPM_SOURCE_CACHE"
+      
+    - name: build (Windows)
+      if: ${{ runner.os == 'Windows' }}
+      run: cmake --build build --config "$env:BUILD_TYPE" -j4
+
+    - name: build
+      if: ${{ runner.os != 'Windows' }}
+      run: cmake --build build --config "$BUILD_TYPE" -j4
+
+    - name: run tests (Windows)
+      if: ${{ runner.os == 'Windows' }}
+      run: |
+        cd build
+        ctest -C "$env:BUILD_TYPE" -VV
+
+    - name: run tests
+      if: ${{ runner.os != 'Windows' }}
+      run: |
+        cd build
+        ctest -C "$BUILD_TYPE" -VV
+
+    # for a release not containing directly the source code, replace the files archived
+    # with the actual files needed (i.e. *.lib/*.a and *.h(pp))
+
+    - name: generate archive (Windows)
+      if: ${{ runner.os == 'Windows' }}
+      run: |
+        rmdir -r -fo build
+        7z a -tzip $HOME/artifact.zip *
+
+
+    - name: generate archive
+      if: ${{ runner.os != 'Windows' }}
+      run: |
+        rm -rf build
+        tar -cvzf $HOME/artifact.tar.gz .
+
+    - name: upload artifacts
+      uses: actions/upload-artifact@v7
+      if: ${{ runner.os == 'Windows' }}
+      with:
+        name: ${{ runner.os }}-${{ steps.version_win.outputs.name }}
+        path: '~/artifact.*'
+
+    - name: upload artifacts
+      uses: actions/upload-artifact@v7
+      if: ${{ runner.os != 'Windows' }}
+      with:
+        name: ${{ runner.os }}-${{ steps.version.outputs.name }}
+        path: '~/artifact.*'
+
+  release:
+    if: contains(github.ref, 'tags/v')
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: write
+
+    steps:
+    - name: set version name
+      id: version
+      run: echo "name=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+
+    - name: download ubuntu artifact
+      uses: actions/download-artifact@v8
+      with:
+        name: "Linux-${{ steps.version.outputs.name }}"
+        path: release-assets/linux
+
+    - name: download windows artifact
+      uses: actions/download-artifact@v8
+      with:
+        name: "Windows-${{ steps.version.outputs.name }}"
+        path: release-assets/windows
+
+    - name: download macos artifact
+      uses: actions/download-artifact@v8
+      with:
+        name: "macOS-${{ steps.version.outputs.name }}"
+        path: release-assets/macos
+
+    - name: prepare release assets
+      run: |
+        mv release-assets/linux/artifact.tar.gz "release-assets/${PROJECT_NAME}-Linux-${{ steps.version.outputs.name }}.tar.gz"
+        mv release-assets/windows/artifact.zip "release-assets/${PROJECT_NAME}-Windows-${{ steps.version.outputs.name }}.zip"
+        mv release-assets/macos/artifact.tar.gz "release-assets/${PROJECT_NAME}-macOS-${{ steps.version.outputs.name }}.tar.gz"
+
+    - name: publish release
+      uses: softprops/action-gh-release@v3
+      with:
+        name: Release ${{ steps.version.outputs.name }}
+        draft: false
+        prerelease: false
+        fail_on_unmatched_files: true
+        files: |
+          release-assets/${{ env.PROJECT_NAME }}-Linux-${{ steps.version.outputs.name }}.tar.gz
+          release-assets/${{ env.PROJECT_NAME }}-Windows-${{ steps.version.outputs.name }}.zip
+          release-assets/${{ env.PROJECT_NAME }}-macOS-${{ steps.version.outputs.name }}.tar.gz
