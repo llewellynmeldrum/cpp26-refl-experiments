@@ -1,0 +1,13 @@
+CompileFlags:
+  Remove: [-freflection]
+  Add: [-DCLANGD_PARSE=1]
+---
+# Disable any diagnostics in .refl.* files
+If: 
+  PathMatch: '.*\.refl\.(cpp|hpp)$'
+CompileFlags:
+  Add: [-std=c++2c, -ferror-limit=0]
+Diagnostics:
+  Suppress: "*"
+Index:
+  Background: Skip
