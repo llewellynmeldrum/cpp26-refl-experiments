@@ -1,4 +1,5 @@
 #pragma once 
+#include "logger.hpp"
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -6,6 +7,7 @@
 #include <vector>
 
 namespace fs = std::filesystem;
+namespace io{
 inline auto to_byte_vector(std::string_view s) -> std::vector<std::byte> {
     return std::vector<std::byte>(
         std::from_range,
@@ -13,6 +15,16 @@ inline auto to_byte_vector(std::string_view s) -> std::vector<std::byte> {
             std::span(s)
         )
     );
+}
+inline auto create_file(fs::path file_path) -> void {
+    if (fs::exists(file_path)){
+        LOG_WARN("called create_file({}) when '{}' already exists.",file_path,file_path);
+    }
+    auto file = std::ofstream(file_path, std::ios::binary);
+    if (!file){
+        std::println("file error: unable to create file: '{}'",file_path);
+        return;
+    }
 }
 inline auto save_to_file(fs::path file_path, std::span<const std::byte> bytes)->void{
     auto file = std::ofstream(file_path, std::ios::binary);
@@ -38,3 +50,4 @@ inline auto delete_file(fs::path file_path)->void{
         std::println(stderr, "Unable to delete file: {}",e.what());
     }
 }
+}// NOTE: namespace io

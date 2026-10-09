@@ -1,8 +1,7 @@
-#include <print>
 #include "testing_refl.refl.hpp"
-
+#include <print>
 
 int main(){
-    std::println("Hello World!");
     refl::run_tests();
+    return 0;
 }

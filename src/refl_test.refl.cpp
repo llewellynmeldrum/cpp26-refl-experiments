@@ -395,17 +395,6 @@ struct Config{
 // 1 Config file per struct
 // Serializing a struct generates a file, where the root table represents that struct.
 // The filename will be set based on the name provided
-template<typename T>
-auto serialize_and_save( T const& v, std::string_view filename) -> bool{
-    if (filename.ends_with(".toml")){
-        auto bytes = serialize<T>(v);
-        save_to_file(fs::path(filename), bytes);
-    }else{
-        std::println(stderr, "Unable to parse file '{}' : unknown extension.",filename);
-        return false;
-    }
-    return true;
-}
 auto run_tests() -> void{
     auto cfg = TestRootTable{};
     delete_file("config.toml");

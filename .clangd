@@ -1,8 +1,8 @@
 CompileFlags:
-  Remove: [-freflection]
+  Remove: [-freflection, -Wfatal-errors]
   Add: [-DCLANGD_PARSE=1]
 ---
-# Disable any diagnostics in .refl.* files
+# Disable all diagnostics in .refl.* files, but use the clang C++26 flags
 If: 
   PathMatch: '.*\.refl\.(cpp|hpp)$'
 CompileFlags:
