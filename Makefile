@@ -1,6 +1,13 @@
 # CMake Wrapper Makefile
 # --------------------------------------------------
 all: run-asan
+# sed to replace relative paths in compiler output, retain color output with a fake shell.
+# Ninja will not print color to non TTY interfaces (pipes by default)
+# Append to the end of a build targets commands to activate (see build)
+SHELL       := /bin/bash
+.SHELLFLAGS := -o pipefail -c
+export CLICOLOR_FORCE := 1
+RELPATH     := 2>&1 | sed "s|$(CURDIR)/||g"
 
 COMPILER ?= gcc-16
 TOOLCHAIN 		:= $(CURDIR)/cmake/$(COMPILER)-toolchain.cmake
@@ -48,11 +55,11 @@ configure-debug:
 
 build: OPT_LEVEL=2
 build: configure
-	cmake --build $(BUILD_DIR) $(BUILD_FLAGS)
+	cmake --build $(BUILD_DIR) $(BUILD_FLAGS) $(RELPATH)
 
 run: OPT_LEVEL=2
 run: build
-	cmake --build $(BUILD_DIR) $(BUILD_FLAGS) --target run\
+	cmake --build $(BUILD_DIR) $(BUILD_FLAGS) --target run 
 
 debug: configure-debug
 	cmake --build $(BUILD_DIR) $(BUILD_FLAGS) 

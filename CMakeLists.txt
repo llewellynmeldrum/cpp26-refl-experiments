@@ -33,7 +33,7 @@ target_compile_options(${APP_NAME} PRIVATE
     -Wimplicit-fallthrough  # Why is this not part of -Wall
     -Wno-unused             # I cant stand this shit spamming my screen
     -Wunused-result         # These ones are okay though
-    -Wfatal-errors         # Gets annoying with clangd (i could disable it in .clangd but im lazy)
+#    -Wfatal-errors         # Gets annoying with clangd (i could disable it in .clangd but im lazy)
     -fdiagnostics-color=always
     -ffile-prefix-map=${CMAKE_SOURCE_DIR}=. # gives stack traces a relative path to cwd
 )
@@ -120,15 +120,26 @@ target_link_libraries(${APP_NAME} PRIVATE
 target_include_directories(${APP_NAME} SYSTEM PRIVATE 
     "${CMAKE_SOURCE_DIR}/external/range-v3/include/"
 )
-# toml++ [HEADER ONLY]
+# ===(DISABLED)==== toml++ [HEADER ONLY] 
 # ---------------------------------------
-target_compile_definitions(${APP_NAME}
-    PUBLIC TOML_HEADER_ONLY 
-    # we use the STB style #define IMPLEMENTATION style
+#target_compile_definitions(${APP_NAME}
+#    PUBLIC TOML_HEADER_ONLY=0
+#    # we use the STB style #define IMPLEMENTATION style
+#)
+#target_include_directories(${APP_NAME} SYSTEM PRIVATE 
+#    "${CMAKE_SOURCE_DIR}/external/toml++/include"
+#)
+
+# toml11 
+# ---------------------------------------
+target_include_directories(${APP_NAME} PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/toml11/include"
 )
-target_include_directories(${APP_NAME} SYSTEM PRIVATE 
-    "${CMAKE_SOURCE_DIR}/external/toml++/include"
+FetchContent_Declare(toml11 SOURCE_DIR
+    "${CMAKE_SOURCE_DIR}/external/toml11"
 )
+FetchContent_MakeAvailable(toml11 )
+target_link_libraries(${APP_NAME} PRIVATE toml11::toml11)
 
 # expected-FS
 # ---------------------------------------
