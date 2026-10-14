@@ -1,5 +1,6 @@
 #pragma once 
 
+#include "meta_shorthand.refl.hpp"
 #include "meta_helpers.refl.hpp"
 namespace refl{
 struct auto_formatter;

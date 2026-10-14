@@ -3,7 +3,7 @@
 	#error "This header is intended for c++ only."
 #endif // __cplusplus
 #include "primitive_types.hpp"
-#include "assert_shorthands.hpp"
+#include "libassert/assert.hpp"
 #include <chrono>
 namespace timer{
     using impl_clock = std::chrono::steady_clock;

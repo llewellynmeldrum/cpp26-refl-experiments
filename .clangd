@@ -1,3 +1,6 @@
+Diagnostics:
+  UnusedIncludes: None
+  Suppress: ["type_unsupported", "unknown_argument", "invalid_consteval_call"]
 CompileFlags:
   Remove: [-freflection, -Wfatal-errors]
   Add: [-DCLANGD_PARSE=1]
@@ -11,3 +14,16 @@ Diagnostics:
   Suppress: "*"
 Index:
   Background: Skip
+---
+# Headers have no compile_commands.json entry, so clangd borrows a command from a
+# "similar" .cpp, often a dependency's file without libassert's paths. Add them here.
+If:
+  PathMatch: 'include/.*\.hpp'
+CompileFlags:
+  Add:
+    - -isystem/Users/llewie/code/proj/cpp26-refl/external/libassert/include
+    - -isystem/Users/llewie/code/proj/cpp26-refl/build/external/libassert/include
+    - -isystem/Users/llewie/code/proj/cpp26-refl/external/cpptrace/include
+    - -isystem/Users/llewie/code/proj/cpp26-refl/build/_deps/cpptrace-build/include
+    - -DLIBASSERT_STATIC_DEFINE
+    - -DCPPTRACE_STATIC_DEFINE

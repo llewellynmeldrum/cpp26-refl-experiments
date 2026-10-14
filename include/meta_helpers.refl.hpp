@@ -1,11 +1,10 @@
 #pragma once 
 
-#include <meta>
-namespace meta = std::meta;
+#include "meta_shorthand.refl.hpp"
 #define COMPTIME_STR(s) (std::define_static_string(s))
 #define COMPTIME_ARR(a) (std::define_static_array(a))
 
-// NOTE: since identifier_of is not stable, we use thesec
+// NOTE: since std::meta::identifier_of is not stable, we use these
 inline consteval auto stable_type_name(meta::info m){
     #define DECL_STABLE_NAME(T, NAME) if (meta::remove_cv(m) == meta::dealias(^^T)) {return NAME ##sv;}
     DECL_STABLE_NAME( i8,  "int8_t")
@@ -35,10 +34,18 @@ inline consteval auto comptime_str(T const& v) -> decltype(auto){
 }
 
 template<typename T>
-static constexpr auto nonstatic_members_array(){
+inline constexpr auto nonstatic_members_array(){
     return std::define_static_array(
         std::meta::nonstatic_data_members_of(
             ^^T, std::meta::access_context::current()
+        )
+    );
+};
+template<std::meta::info m>
+inline constexpr auto annotations_array(){
+    return std::define_static_array(
+        std::meta::annotations_of(
+            m
         )
     );
 };
@@ -88,6 +95,6 @@ template<typename T, typename Fn>
 }
 
 template<typename ...Args>
-inline consteval auto satisifes_concept(meta::info r_concept, Args ...args){
+inline consteval auto satisfies_concept(meta::info r_concept, Args ...args){
     return meta::extract<bool>(meta::substitute(r_concept, {args...}));
 }

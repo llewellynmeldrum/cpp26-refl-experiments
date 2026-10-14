@@ -9,6 +9,7 @@
 namespace fs = std::filesystem;
 namespace io{
 inline auto to_byte_vector(std::string_view s) -> std::vector<std::byte> {
+
     return std::vector<std::byte>(
         std::from_range,
         std::as_bytes(
@@ -39,6 +40,9 @@ inline auto save_to_file(fs::path file_path, std::span<const std::byte> bytes)->
     }
 
 }
+inline auto move_file_to(fs::path src, fs::path dst)->void{
+    fs::rename(src, dst);
+}
 inline auto delete_file(fs::path file_path)->void{
     try{
         if (fs::remove(file_path)){
@@ -49,5 +53,15 @@ inline auto delete_file(fs::path file_path)->void{
     } catch (const fs::filesystem_error& e) {
         std::println(stderr, "Unable to delete file: {}",e.what());
     }
+}
+inline auto atomic_save_to_file(fs::path filepath, std::span<const std::byte>bytes) -> void {
+    // we do atomic writes to a scratch file to preserve previous config files in the case of a crash mid-write
+
+    auto const tmp_filepath = fs::path{filepath.string() + ".tmp"};
+    {
+        io::save_to_file(tmp_filepath, bytes);
+    }
+    // i.e, move file
+    io::move_file_to(tmp_filepath, filepath);
 }
 }// NOTE: namespace io
