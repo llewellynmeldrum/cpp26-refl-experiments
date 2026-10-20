@@ -1,6 +1,10 @@
 #pragma once
 #include <concepts>
+#include <tuple>
 #include <type_traits>
+
+template<typename T>
+concept is_enum = std::is_enum_v<T>;
 
 template<typename T>
 using nocvref = std::remove_cvref_t<T>;
@@ -43,3 +47,11 @@ concept same_as_none_nocvref = ((!same_as_nocvref<T, Ts>) && ...);
 // NOTE: Numeric concepts
 template<typename T>
 concept is_numeric = std::floating_point<T> || std::integral<T>;
+
+
+// NOTE: generic concepts
+
+template<typename T>
+concept is_tuple_like = requires(T){
+    std::tuple_size_v<nocvref<T>>;
+};

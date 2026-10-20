@@ -13,6 +13,7 @@ template<typename T> static constexpr bool auto_formatter_enabled =
         >
     >;
 
+#define USE_AUTO_FORMATTER(T) template<> struct std::formatter<T> : refl::auto_formatter { };
 
 
 struct auto_formatter{
@@ -20,6 +21,7 @@ struct auto_formatter{
         bool subfields_print_types{false};
         bool include_static{false};
     }opts;
+
     constexpr auto parse(std::format_parse_context& ctx) {
         auto it = ctx.begin();
         while (it != ctx.end() && *it != '}'){
@@ -33,11 +35,10 @@ struct auto_formatter{
         return it;
         return ctx.begin(); 
     }
-
     static constexpr auto apply_indent(std::format_context& ctx, size_t indent)noexcept{
         auto out = std::format_to(ctx.out(),"");
         for (size_t i = 0; i<indent; i++){
-            out = std::format_to(ctx.out(), "\t");
+            out = std::format_to(ctx.out(), "  ");
         }
         return out;
     };
@@ -129,7 +130,7 @@ struct auto_formatter{
         return out;
     }
 
-    // make it recursive.
+
     template<typename T>
     constexpr auto format(const T& obj, std::format_context& ctx) const noexcept{
         return recurse_format(obj,"",ctx,opts,0,false);

@@ -9,6 +9,8 @@
 #include <deque>
 #include <ranges>
 
+using ssize_t = std::ptrdiff_t;
+#define BUILDER_INTERFACE(FIELD) auto set##FIELD(auto in) -> decltype(auto){this->FIELD = in; return *this;}
 #define st_cast static_cast
 #define NOP ((void)0)
 // The ctor that never was
