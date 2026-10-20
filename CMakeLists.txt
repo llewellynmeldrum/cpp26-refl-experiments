@@ -115,6 +115,24 @@ target_link_libraries(${APP_NAME} PRIVATE
 )
 
 
+# IMGUI
+# ---------------------------------------
+target_include_directories(${APP_NAME} SYSTEM PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/imgui"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/imgui/backends"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/imgui/misc/cpp"
+)
+add_subdirectory(
+    external/imgui
+    SYSTEM
+)
+target_link_libraries(${APP_NAME} PRIVATE
+    imgui
+)
+
+
+
+
 # RANGE-V3 [HEADER ONLY]
 # ---------------------------------------
 target_include_directories(${APP_NAME} SYSTEM PRIVATE 
@@ -135,9 +153,10 @@ target_include_directories(${APP_NAME} SYSTEM PRIVATE
 target_include_directories(${APP_NAME} PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/external/toml11/include"
 )
-FetchContent_Declare(toml11 SOURCE_DIR
+FetchContent_Declare(toml11 SOURCE_DIR 
     "${CMAKE_SOURCE_DIR}/external/toml11"
 )
+set(TOML11_PRECOMPILE ON)
 FetchContent_MakeAvailable(toml11 )
 target_link_libraries(${APP_NAME} PRIVATE toml11::toml11)
 
@@ -209,11 +228,11 @@ add_custom_target(debug
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     USES_TERMINAL
 )
-
+find_program(DSYMUTIL dsymutil HINTS /usr/bin NO_DEFAULT_PATH)
 if(APPLE)
     if(ENABLE_CPPTRACE)
         add_custom_command(TARGET ${APP_NAME} POST_BUILD
-            COMMAND dsymutil $<TARGET_FILE:${APP_NAME}>
+            COMMAND ${DSYMUTIL} $<TARGET_FILE:${APP_NAME}>
             COMMENT "Generating .dSYM for stack traces for cpptrace/libassert"
         )
     endif()

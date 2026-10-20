@@ -1,4 +1,4 @@
 *.toml
-/build
+/build*
 compile_commands.json
 /bin

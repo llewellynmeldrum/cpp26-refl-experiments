@@ -45,7 +45,7 @@ configure: OPT_LEVEL=2
 configure:
 	cmake -S . -B $(BUILD_DIR) $(CMAKE_COMMON) \
 		-DENABLE_CPPTRACE=ON\
-		-D_O2=ON \
+		-D_O0=ON \
 		-DCMAKE_BUILD_TYPE=Debug 
 
 configure-debug:
@@ -53,11 +53,11 @@ configure-debug:
 		-DCMAKE_BUILD_TYPE=Debug \
 		-D_O0=ON
 
-build: OPT_LEVEL=2
+build: OPT_LEVEL=0
 build: configure
 	cmake --build $(BUILD_DIR) $(BUILD_FLAGS) $(RELPATH)
 
-run: OPT_LEVEL=2
+run: OPT_LEVEL=0
 run: build
 	cmake --build $(BUILD_DIR) $(BUILD_FLAGS) --target run 
 
