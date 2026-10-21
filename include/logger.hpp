@@ -28,8 +28,8 @@ inline constexpr void LOG_STR(
         std::println(
             "{}{}{}: {}{}{}",
             title_style,
-            title == "" ? "" : std::format("{}:",title),
-            show_time_in_logs ? "" : std::format("[{:4.2f}]",timer::get_seconds(timer::since_epoch())),
+            title.empty() ? "" : std::format("[{}]",title),
+            show_time_in_logs ? std::format("[{:4.2f}]",timer::get_seconds(timer::since_epoch())) : "",
             style::reset(),
             body_style,
             body,
@@ -59,23 +59,10 @@ template <class... _Args>
 inline constexpr void LOG_ERROR(std::format_string<_Args...> a_fmt, _Args&&... a_args) {
     LOG_STR(
         style::fg_br_red(),
-        "ERROR "sv,
+        "ERROR"sv,
         style::fg_red(),
         std::format(a_fmt,std::forward<_Args>(a_args)...)
     );
-}
-template <class... _Args>
-inline constexpr void LOG_CUSTOM_ERR(std::string_view title, std::format_string<_Args...> a_fmt, _Args&&... a_args) {
-    LOG_STR(
-        style::fg_br_red(),
-        title,
-        style::fg_red(),
-        std::format(a_fmt,std::forward<_Args>(a_args)...)
-    );
-}
-template <class... _Args>
-inline constexpr void LOG_PARSE_ERR(std::format_string<_Args...> a_fmt, _Args&&... a_args) {
-    LOG_CUSTOM_ERR("PARSE ERROR",a_fmt,std::forward<_Args>(a_args)...);
 }
 template <class... _Args>
 inline constexpr void LOG_SUB_ERROR(std::format_string<_Args...> a_fmt, _Args&&... a_args) {
@@ -91,7 +78,7 @@ template <class... _Args>
 inline constexpr void LOG_FATAL(std::format_string<_Args...> a_fmt, _Args&&... a_args) {
     LOG_STR(
         style::fg_br_red(),
-        "FATAL "sv,
+        "FATAL"sv,
         style::fg_red(),
         std::format(a_fmt,std::forward<_Args>(a_args)...)
     );
@@ -101,7 +88,7 @@ template <class... _Args>
 inline constexpr void LOG_INFO(std::format_string<_Args...> a_fmt, _Args&&... a_args) {
     LOG_STR(
         style::fg_blue(),
-        "INFO  "sv,
+        "INFO"sv,
         style::fg_br_blue(),
         std::format(a_fmt,std::forward<_Args>(a_args)...)
     );
@@ -110,7 +97,7 @@ template <class... _Args>
 inline constexpr void LOG_WARN(std::format_string<_Args...> a_fmt, _Args&&... a_args) {
     LOG_STR(
         style::fg_yellow(),
-        "WARN  "sv,
+        "WARN"sv,
         style::fg_br_yellow(),
         std::format(a_fmt,std::forward<_Args>(a_args)...)
     );
@@ -131,7 +118,7 @@ template <class... _Args>
 inline constexpr void LOG_DBG(std::format_string<_Args...> a_fmt, _Args&&... a_args) {
     LOG_STR(
         style::fg_rgb(140,0,190),
-        "DBG   "sv,
+        "DBG"sv,
         style::fg_rgb(190,0,255),
         std::format(a_fmt,std::forward<_Args>(a_args)...)
     );

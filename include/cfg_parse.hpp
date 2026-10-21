@@ -14,7 +14,7 @@
 #include "cfg_parse.refl.hpp"
 //#include "meta_helpers.refl.hpp"
 #include "toml11/fwd/error_info_fwd.hpp"
-#include "toml_traits.hpp"
+#include "cfg_traits.hpp"
 #include "primitive_types.hpp"
 #include "cppslop.hpp"
 
@@ -50,7 +50,7 @@ consteval auto _identifier_of(T const& v){
 
 namespace cfg{
 
-auto print_errors(std::span< const toml::error_info> errors){
+inline auto print_errors(std::span< const toml::error_info> errors){
     auto const err_count = errors.size();
     for (auto const& [idx,err]: std::views::enumerate(errors)){
         LOG_SUB_ERROR("Error {} of {}: {} ",idx+1, err_count, err.title());

@@ -1,7 +1,7 @@
 #pragma once 
 #include <meta>
 #include <ranges>
-#include "toml_traits.hpp"
+#include "cfg_traits.hpp"
 #include "meta_helpers.refl.hpp"
 #include "cfg_helpers.refl.hpp"
 #include "toml_traits.refl.hpp"

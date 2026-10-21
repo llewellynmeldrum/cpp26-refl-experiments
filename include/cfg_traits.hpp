@@ -28,11 +28,7 @@ inline constexpr bool is_bounded_array_type<std::array<T,size>> = true;
 namespace cfg::concepts{
 
 template<typename T>
-concept is_string_type = std::same_as<T,char const*> ||
-same_as_any_nocvref<T,
-    std::string, 
-    std::string_view 
->;
+concept is_string_type = same_as_nocvref<T, std::string>;
 
 template<typename T>
 concept is_scalar_integral =
@@ -101,14 +97,19 @@ constexpr auto kind_of() -> toml::Kind{
 }// NOTE: namespace toml
 namespace cfg::concepts{
 
-template<typename T> concept is_scalar_type = (
+template<typename T>
+concept is_scalar_type = (
     toml::kind_of<T>() == toml::Kind::Int 
     || toml::kind_of<T>() == toml::Kind::Float
     || toml::kind_of<T>() == toml::Kind::Bool
     || toml::kind_of<T>() == toml::Kind::String
 );
-template<typename T> concept is_array_type = toml::kind_of<T>() == toml::Kind::Array;
-template<typename T> concept is_struct_like = toml::kind_of<T>() == toml::Kind::Table;
+template<typename T> 
+concept is_array_type = toml::kind_of<T>() == toml::Kind::Array;
+
+template<typename T> 
+concept is_struct_like = toml::kind_of<T>() == toml::Kind::Table;
+
 
 //------------------------------------
 struct Cfg{
@@ -187,7 +188,7 @@ constexpr auto serialize_scalar_value(T const& v){
         }
         return s;
     }else if constexpr(cfg::concepts::is_string_type<T>){
-        return std::string(v);
+        return std::format("\"{}\"");
     }else{
         static_assert(false, "unable to format scalar value");
     }

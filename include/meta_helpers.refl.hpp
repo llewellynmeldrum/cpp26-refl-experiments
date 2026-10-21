@@ -2,7 +2,9 @@
 
 #include "meta_shorthand.refl.hpp"
 #include "primitive_types.hpp"
+#include "stable_type_name.hpp"
 #include <string_view>
+#include <meta>
 using namespace std::string_view_literals;
 #define COMPTIME_STR(s) (std::define_static_string(s))
 #define COMPTIME_ARR(a) (std::define_static_array(a))
@@ -28,28 +30,6 @@ inline consteval auto stable_type_name(meta::info m){
     #undef DECL_STABLE_NAME
     return meta::display_string_of(meta::remove_cv(m));
 }
-template<typename T>
-inline consteval auto stable_type_name(){
-    #define DECL_STABLE_NAME(U, NAME) if (std::same_as<std::remove_cvref_t<T>,U>) {return NAME ##sv;}
-    DECL_STABLE_NAME( i8, "i8")
-    DECL_STABLE_NAME(i16, "i16")
-    DECL_STABLE_NAME(i32, "i32")
-    DECL_STABLE_NAME(i64, "i64")
-
-    DECL_STABLE_NAME( u8, "u8")
-    DECL_STABLE_NAME(u16, "u16")
-    DECL_STABLE_NAME(u32, "u32")
-    DECL_STABLE_NAME(u64, "u64")
-
-    DECL_STABLE_NAME(bool, "bool")
-    DECL_STABLE_NAME(f16, "f16")
-    DECL_STABLE_NAME(f32, "f32")
-    DECL_STABLE_NAME(f64, "f64")
-
-    DECL_STABLE_NAME(std::string, "std::string")
-    #undef DECL_STABLE_NAME
-    return meta::display_string_of(meta::remove_cvref(^^T));
-}
 template<typename T> 
 inline consteval auto comptime_arr(T const& v) -> decltype(auto){
     return std::define_static_array(v);
@@ -57,6 +37,13 @@ inline consteval auto comptime_arr(T const& v) -> decltype(auto){
 template<typename T> 
 inline consteval auto comptime_str(T const& v) -> decltype(auto){
     return std::define_static_string(v);
+}
+
+template<typename T>
+inline consteval auto is_annotation_of(std::meta::info m) -> bool{
+    using namespace std::meta;
+    auto type = dealias(remove_cvref(type_of(m)));
+    return type == ^^T;
 }
 
 template<typename T>

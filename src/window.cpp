@@ -38,15 +38,16 @@ Window::Window(std::string a_name)
     SDL_SetWindowPosition(m_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 
     ui.init(m_renderer,m_window,m_main_scale);
+
+    SDL_SetHint(SDL_HINT_FORCE_RAISEWINDOW, "1");
+    SDL_ShowWindow(m_window);
+    SDL_RaiseWindow(m_window);
 }
-//auto Window::init_sdl() -> void{}
-//auto Window::init_imgui() -> void{}
 auto Window::clear(f32 r, f32 g, f32 b, f32 a) -> void{
     SDL_SetRenderDrawColorFloat(m_renderer, r,g,b,a);
     SDL_RenderClear(m_renderer);
 }
 auto Window::begin_frame() ->void{
-    SDL_ShowWindow(m_window);
     if (SDL_GetWindowFlags(m_window) & SDL_WINDOW_MINIMIZED) {
         SDL_Delay(10);
         return;
@@ -63,9 +64,7 @@ auto Window::set_render_scale(f32 x, f32 y) ->void{
 auto Window::show() ->void{
     handle_inputs();
     begin_frame();
-    ui.draw_frame();
-    ui.render_frame();
-    ui.present_frame();
+    ui.show();
     present_frame();
 }
 

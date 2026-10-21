@@ -5,6 +5,7 @@
 namespace cfg{
 template<typename T>
 struct Storage{
+    using config_type = T;
     // TODO: This type should be special somehow, it should be impossible to
     // copy or move. The type itself doesnt hold a unique object (like a file),
     // but it holds the source of truth, which should be singular for consistency

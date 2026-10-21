@@ -1,7 +1,11 @@
 #pragma once
 #include <concepts>
+#include <ranges>
 #include <tuple>
 #include <type_traits>
+
+template<typename T>
+using element_t = std::ranges::range_value_t<T>;
 
 template<typename T>
 concept is_enum = std::is_enum_v<T>;

@@ -10,10 +10,49 @@
 
 #include "cfg_metadata.hpp"
 #include "cfg_helpers.hpp"
-#include "toml_traits.hpp"
+#include "cfg_traits.hpp"
 
 namespace cfg{
-auto toml_val_is_scalar(toml::value const& v) -> bool{
+template<typename ExpectedType>
+auto check_type_mismatch(
+    toml::value const& v,
+    std::string_view path
+) -> std::optional<toml::error_info>{
+    auto bad_match = [&v, &path](std::string_view expect_type, std::string_view bad_type){
+        return toml::make_error_info(
+            "[Loading Error]",
+            v.location(),
+            std::format(
+                "Field '{}' expects literal compatible with type '{}',"
+                "but config contains a value of type '{}'. Field is unchanged/defaulted.",
+                path,expect_type,bad_type
+            ) 
+        );
+    };
+    if constexpr (cfg::concepts::is_scalar_boolean<ExpectedType>){
+        if (!v.is_boolean()){
+            return bad_match(stable_type_name_primitives<ExpectedType>(), toml::to_string(v.type()));
+        }
+    }else if constexpr(cfg::concepts::is_scalar_floating_point<ExpectedType>){
+        if (!v.is_floating()){
+            return bad_match(stable_type_name_primitives<ExpectedType>(), toml::to_string(v.type()));
+        }
+    }else if constexpr(cfg::concepts::is_string_type<ExpectedType>){
+        if (!v.is_string()){
+            return bad_match(stable_type_name_primitives<ExpectedType>(), toml::to_string(v.type()));
+        }
+    }else if constexpr(cfg::concepts::is_scalar_char<ExpectedType>){
+        if (!v.is_string()){
+            return bad_match(stable_type_name_primitives<ExpectedType>(), toml::to_string(v.type()));
+        }
+    }else if constexpr(cfg::concepts::is_scalar_integral<ExpectedType>){
+        if (!v.is_integer()){
+            return bad_match(stable_type_name_primitives<ExpectedType>(), toml::to_string(v.type()));
+        }
+    }
+    return std::nullopt;
+}
+inline auto toml_val_is_scalar(toml::value const& v) -> bool{
     if (
        v.type() == toml::value_t::boolean 
        || v.type() == toml::value_t::integer
@@ -30,23 +69,23 @@ auto read_scalar(
     toml::value const& v,
     std::string_view path
 ) -> std::expected<T, toml::error_info>{
-    auto get_error = [&path, &v](std::string const&  msg){
-        return toml::make_error_info(
-            "[Loading Error]",
+    auto get_error = [&path, &v](std::string const&  msg) -> std::unexpected<toml::error_info>{
+        return std::unexpected(toml::make_error_info(
+            "[Invalid Value Type]",
             v.location(),
-           std::format("Field '{}' {}. Field is unchanged/defaulted.",path, msg) 
-        );
+           std::format("Field '{}' {}. Field is unchanged/defaulted.",path, msg)
+        ));
     };
     using U = nocvref<T>;
     if (!toml_val_is_scalar(v)){
-        return get_error(v, std::format(
+        return get_error(std::format(
             "expects scalar type, but config contains type '{}'",
             toml::to_string(v.type())
         ));
     }
-    auto type_match_error = check_type_match_error<U>(v,path);
+    auto type_match_error = check_type_mismatch<U>(v,path);
     if (type_match_error){
-        return *type_match_error;
+        return std::unexpected(*type_match_error);
     }
 
     // NOTE: 
@@ -114,46 +153,14 @@ auto read_scalar(
     }
 }
 
-
-template<typename ExpectedType>
-auto check_type_match_error(
+template<typename T>
+auto read_into(
+    T & out,
     toml::value const& v,
+    std::vector<toml::error_info>& errors,
     std::string path
-) -> std::optional<toml::error_info>{
-    auto bad_match = [&v, &path](std::string_view expect_type, std::string_view bad_type){
-        return toml::make_error_info(
-            "[Loading Error]",
-            v.location(),
-            std::format(
-                "Field '{}' expects literal compatible with type '{}',"
-                "but config contains a value of type '{}'. Field is unchanged/defaulted.",
-                path,expect_type,bad_type
-            ) 
-        );
-    };
-    if constexpr (cfg::concepts::is_scalar_boolean<ExpectedType>){
-        if (!v.is_boolean()){
-            return bad_match(stable_type_name_primitives<ExpectedType>(), toml::to_string(v.type()));
-        }
-    }else if constexpr(cfg::concepts::is_scalar_floating_point<ExpectedType>){
-        if (!v.is_floating()){
-            return bad_match(stable_type_name_primitives<ExpectedType>(), toml::to_string(v.type()));
-        }
-    }else if constexpr(cfg::concepts::is_string_type<ExpectedType>){
-        if (!v.is_string()){
-            return bad_match(stable_type_name_primitives<ExpectedType>(), toml::to_string(v.type()));
-        }
-    }else if constexpr(cfg::concepts::is_scalar_char<ExpectedType>){
-        if (!v.is_string()){
-            return bad_match(stable_type_name_primitives<ExpectedType>(), toml::to_string(v.type()));
-        }
-    }else if constexpr(cfg::concepts::is_scalar_integral<ExpectedType>){
-        if (!v.is_integer()){
-            return bad_match(stable_type_name_primitives<ExpectedType>(), toml::to_string(v.type()));
-        }
-    }
-    return std::nullopt;
-}
+) -> void;
+
 
 template<typename T>
 auto read_array(
@@ -162,7 +169,7 @@ auto read_array(
     std::vector<toml::error_info>& errors,
     std::string path
 ) -> void{
-    auto single_error = [&errors, &path, &v](std::string const&  msg){
+    auto report_error = [&errors, &path, &v](std::string const&  msg){
         errors.push_back(toml::make_error_info(
             "[Loading Error]",
             v.location(),
@@ -170,42 +177,46 @@ auto read_array(
         ));
     };
     if (!v.is_array()){
-        single_error(v, std::format(
+        report_error(std::format(
             "expects array type, but config contains type '{}'",
             toml::to_string(v.type())
         ));
         return;
     }
     auto as_array = v.as_array();
-    auto const expected_size = out.size();
-    if (as_array.size() != expected_size){
-        single_error(v, std::format(
-            "has a size of {}, but config contains array of size {}",
-            as_array.size(),
-            expected_size
-        ));
-        return;
+    if constexpr (traits::is_bounded_array_type<T>){
+        auto const expected_size = out.size();
+        if (as_array.size() != expected_size){
+            report_error(std::format(
+                "has a size of {}, but config contains array of size {}",
+                as_array.size(), expected_size
+            ));
+            return;
+        }
     }
 
     toml::value_t first_type = {};
-    for (auto & [idx,elem]: std::views::enumerate(as_array)){
-        auto type_match_error = check_type_match_error<T::value_type>(elem,path);
-        if (type_match_error){
-            errors.push_back(*type_match_error);
+    auto idx = 0uz;
+    for (auto & elem: as_array){
+        using elem_t = element_t<T>;
+        auto type_mismatch = check_type_mismatch<elem_t>(elem,path);
+        if (type_mismatch){
+            errors.push_back(*type_mismatch);
             return;
         }
-        if (idx == 0){ first_type = elem.type(); }
-        else if (elem.type() != first_type){
+        if (idx == 0){
+            first_type = elem.type(); 
+        } else if (elem.type() != first_type){
             errors.push_back(toml::make_error_info(
-                "[Loading Error]",
+                "[Hetrogenous Array Error]",
                 v.location(),
                std::format("Config contains hetrogenous array, arrays must be homogenous to be loaded.")
             ));
             return;
         }
         // TODO: ADD THE CURRENT ELEMENT TO PATH
-        read_into(
-            out.at(idx),
+        cfg::read_into(
+            out.at(idx++),
             elem,
             errors,
             path
@@ -258,18 +269,20 @@ auto read_into(
             constexpr auto key = identifier_of(m);
             if (!v.contains(std::string(key))){
                 errors.push_back( toml::make_error_info(
-                    "[Loading Error]",
+                    "[Missing Key]",
                     v.location(),
-                    std::format(
+                    // TODO: add bold/underline or just general formatting to all of the errors
+                    std::format( "\e[1;4m"
                         "Table '{}' expects field '{}', "
-                        "but config does not contain a matching key. Field is unchanged/defaulted.",
+                        "but config does not contain a matching key. Field is unchanged/defaulted."
+                        "\e[0m",
                         stable_type_name<T>(),
                         key
                     )
                 ));
                 continue;
             }
-            read_into(
+            cfg::read_into(
                 out.[:m:],
                 v.at(std::string(key)),
                 errors,

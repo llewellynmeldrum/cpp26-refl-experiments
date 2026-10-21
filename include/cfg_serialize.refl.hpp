@@ -144,8 +144,8 @@ template<std::meta::info field>
 auto get_suffix_comment(std::string_view parent_name) -> std::string{
     constexpr auto raw_type_name = stable_type_name(meta::nocvref_alias(type_of(field)));
     using Ft = typename[:dealias(remove_cvref(type_of(field))):];
-    constexpr auto has_range = try_get_range<Ft, field>();
-    constexpr auto has_note = try_get_note<field>();
+    constexpr auto has_range = try_get_range(field);
+    constexpr auto has_note = try_get_note(field);
     auto type_str = std::string{};
     if constexpr (meta::is_struct_like(dealias(remove_cvref(type_of(field))))){
         type_str = std::string("struct ") + std::string(raw_type_name);

@@ -1,5 +1,7 @@
 #pragma once 
 
+#include <ranges>
+#include <format>
 #include "meta_shorthand.refl.hpp"
 #include "meta_helpers.refl.hpp"
 namespace refl{
@@ -22,6 +24,9 @@ struct auto_formatter{
         bool include_static{false};
     }opts;
 
+    // options: 
+    // {:t} subfields show their type names
+    // {:s} include static members
     constexpr auto parse(std::format_parse_context& ctx) {
         auto it = ctx.begin();
         while (it != ctx.end() && *it != '}'){
@@ -35,10 +40,10 @@ struct auto_formatter{
         return it;
         return ctx.begin(); 
     }
-    static constexpr auto apply_indent(std::format_context& ctx, size_t indent)noexcept{
+    static constexpr auto apply_indent(auto& ctx, size_t indent)noexcept{
         auto out = std::format_to(ctx.out(),"");
         for (size_t i = 0; i<indent; i++){
-            out = std::format_to(ctx.out(), "  ");
+            out = std::format_to(ctx.out(), "    ");
         }
         return out;
     };
@@ -46,7 +51,7 @@ struct auto_formatter{
     constexpr auto format_natively(
         T const& obj,
         std::string_view identifier,
-        std::format_context& ctx,
+        auto& ctx,
         format_opts const& opts,
         size_t indent
     )const noexcept{
@@ -72,7 +77,7 @@ struct auto_formatter{
     static constexpr auto format_field_name(
         T const& obj,
         std::string_view identifier,
-        std::format_context& ctx,
+        auto& ctx,
         format_opts const& opts
     )noexcept{
         if (opts.subfields_print_types){
@@ -96,7 +101,7 @@ struct auto_formatter{
     constexpr auto recurse_format(
         T const& obj,
         std::string_view identifier,
-        std::format_context& ctx,
+        auto& ctx,
         format_opts const& opts,
         size_t indent,
         bool is_static
@@ -132,7 +137,7 @@ struct auto_formatter{
 
 
     template<typename T>
-    constexpr auto format(const T& obj, std::format_context& ctx) const noexcept{
+    constexpr auto format(const T& obj, auto& ctx) const noexcept{
         return recurse_format(obj,"",ctx,opts,0,false);
     }
 

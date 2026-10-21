@@ -29,7 +29,12 @@ template<typename To, typename From>
 [[nodiscard]] constexpr inline auto cast(From&& f) noexcept -> To{
     return static_cast<To>(std::forward<From>(f));
 }
+#define CONCAT(a,b) a##b
 
 // NOTE: I know this is considered bad practice, and I probably wont do it for the ""s operators, but i think ""sv is unique enough that it shouldnt matter.
 // I just really dislike c strings.
 using namespace std::string_view_literals;
+
+//NOTE: instantiate this to get a compile error with the type name included
+template <typename T>
+struct force_type_error;
