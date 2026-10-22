@@ -31,7 +31,7 @@ template<typename T>
 auto edit_leaf(T& v, FieldInfo info) -> bool{
     auto label = info.get_label();
     ASSERT(!info.has_range(), "Strings do not support ranges atm. Consider implementing to constrain string length min and max?");
-    bool changed = ui::InputValidString(label, v, info.tooltip());
+    bool changed = ui::InputString(label, v, info.tooltip());
     return changed;
 }
 

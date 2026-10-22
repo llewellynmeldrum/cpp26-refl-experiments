@@ -9,6 +9,7 @@
 #include "engine.hpp"
 #include "cppslop.hpp"
 #include "window.hpp"
+#include "reflection_wrapper.hpp"
 
 #include "reflect_formatter.refl.hpp"
 #include "test_config.hpp"

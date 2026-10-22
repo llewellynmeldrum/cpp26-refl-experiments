@@ -188,7 +188,7 @@ constexpr auto serialize_scalar_value(T const& v){
         }
         return s;
     }else if constexpr(cfg::concepts::is_string_type<T>){
-        return std::format("\"{}\"");
+        return std::format("\"{}\"",v);
     }else{
         static_assert(false, "unable to format scalar value");
     }

@@ -54,7 +54,11 @@ inline auto ClampedSlider(
     if (tooltip) ui::InlineTooltip(*tooltip);
     return changed;
 }
-inline auto InputValidString(
+// TODO: this function needs to be fixed, the inbuf_buf is causing a bunch of null bytes (i think)
+// - also the bottom bar with the buttons should be persistent, i.e locked so that its always below. Maybe a separate window?
+// - Also i want to use the new default font for imgui which is higher res and much nicer looking
+// - 
+inline auto InputString(
     std::string_view label,
     std::string& str,
     std::optional<std::string_view> tooltip=std::nullopt
@@ -64,6 +68,7 @@ inline auto InputValidString(
     auto input_buf = std::vector<char>(std::from_range, str);
     input_buf.resize(MaxInputStringSize);
     auto changed = ig::InputText(std::string(label).c_str(), input_buf.data(), input_buf.size(), ImGuiInputTextFlags_CharsNoBlank);
+    // locate the first null byte and resize
     str.assign_range(input_buf);
     if (tooltip) ui::InlineTooltip(*tooltip);
     return changed;

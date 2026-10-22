@@ -98,12 +98,12 @@ auto edit_config_window(Storage<T> & storage) -> bool{
             }
         }
     }
-    bool save_to_disk = ig::Button(std::format("Save ('{}')",storage.filename).c_str());
+    bool save_to_disk = ig::Button(std::format("Save to file",storage.filename).c_str());
     ui::ApplyTooltip(std::format("Saves the current live config state (in '{}').",storage.filename));
     ig::SameLine();
 
 
-    bool load_from_disk = ig::Button("Reset to disk");
+    bool load_from_disk = ig::Button("Load from file");
     ui::ApplyTooltip(std::format("Loads the current disk config state (in '{}').",storage.filename));
     ig::SameLine();
 

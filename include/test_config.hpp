@@ -36,6 +36,7 @@ struct PlayerConfig{
     DisplayConfig display;
 };
 struct Config {
+    std::string str{"hi"};
     RANGE(0, 100) i32 foo = 5;
     PlayerConfig player;
     NOTE("These are some floats") std::array<int, 5> integers = {1,2,3,4,5};
