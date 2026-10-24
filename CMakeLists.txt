@@ -29,27 +29,39 @@ target_include_directories(${APP_NAME} PRIVATE
 target_compile_options(${APP_NAME} PRIVATE
     -Wall
     -Wswitch                # Force errors like 'enum value x not evaluated in switch statement'
-    -Werror                 
     -Wimplicit-fallthrough  # Why is this not part of -Wall
     -Wno-unused             # I cant stand this shit spamming my screen
     -Wunused-result         # These ones are okay though
 #    -Wfatal-errors         # Gets annoying with clangd (i could disable it in .clangd but im lazy)
     -fdiagnostics-color=always
     -ffile-prefix-map=${CMAKE_SOURCE_DIR}=. # gives stack traces a relative path to cwd
+    -freflection
 )
 
-set_target_properties( ${APP_NAME} PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin"
-)
+OPTION(_TIME_REPORT "Print -ftime-report for each TU" OFF)
 
-# TEMPORARY FOR BENCHMARKING COMPILE TIME
-#target_compile_options(${APP_NAME} PRIVATE -ftime-report)
-
-# enable reflection only for files with the .refl.cpp extension
-file(GLOB_RECURSE REFL_SRC CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.refl.cpp")
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    set_source_files_properties(${REFL_SRC} PROPERTIES COMPILE_OPTIONS -freflection)
+set(_MAX_ERRORS 0 CACHE STRING "Stop each TU after N errors (0 = no limit, keeps -Werror)")
+if(_TIME_REPORT)
+    target_compile_options(${APP_NAME} PRIVATE -ftime-report)
 endif()
+
+if(_MAX_ERRORS GREATER 0)
+    target_compile_options(${APP_NAME} PRIVATE
+        -fmax-errors=${_MAX_ERRORS}
+        -fconcepts-diagnostics-depth=2
+        # -fno-diagnostics-show-nesting-locations   # more compact, loses some file names
+    )
+else()
+    target_compile_options(${APP_NAME} PRIVATE -Werror)
+endif()
+
+
+# Previously, we only enabled reflection on files with the .refl.cpp extension
+# now, we do it for all files.
+#file(GLOB_RECURSE REFL_SRC CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.refl.cpp")
+#if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+#    set_source_files_properties(${REFL_SRC} PROPERTIES COMPILE_OPTIONS -freflection)
+#endif()
 
 # =============================================================================
 # LIBRARIES
@@ -216,20 +228,8 @@ if(_ENABLE_UBSAN)
 endif()
 
 
-add_custom_target(run
-    COMMAND sh -c "./bin/${APP_NAME}"
-    DEPENDS ${APP_NAME}
-    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-)
-
-add_custom_target(debug
-    COMMAND lldb -o run -- "$<TARGET_FILE:${APP_NAME}>"
-    DEPENDS ${APP_NAME}
-    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-    USES_TERMINAL
-)
-find_program(DSYMUTIL dsymutil HINTS /usr/bin NO_DEFAULT_PATH)
 if(APPLE)
+    find_program(DSYMUTIL dsymutil HINTS /usr/bin NO_DEFAULT_PATH)
     if(ENABLE_CPPTRACE)
         add_custom_command(TARGET ${APP_NAME} POST_BUILD
             COMMAND ${DSYMUTIL} $<TARGET_FILE:${APP_NAME}>
@@ -237,5 +237,3 @@ if(APPLE)
         )
     endif()
 endif()
-
-
