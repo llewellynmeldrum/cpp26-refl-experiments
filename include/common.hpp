@@ -10,8 +10,14 @@
 #endif
 
 #if defined(__cpp_impl_reflection)
+#define IF_CPP26(...) __VA_ARGS__
 #define CPP26 1
+#define cpp26 1
 #else
-#define CPP26 0
+#define IF_CPP26(...) 
 #endif
 
+
+
+#include <string_view>
+using namespace std::string_view_literals;

@@ -2,6 +2,7 @@
 #include "style.hpp"
 #include "cppslop.hpp"
 #include "timer.hpp"
+#include "concept_helpers.hpp"
 
 #include <print>
 #include <cpptrace/basic.hpp>
@@ -85,6 +86,7 @@ inline constexpr void LOG_FATAL(std::format_string<_Args...> a_fmt, _Args&&... a
     LOG_EXIT(EXIT_FAILURE);
 }
 template <class... _Args>
+    requires all_are_formattable<_Args...>
 inline constexpr void LOG_INFO(std::format_string<_Args...> a_fmt, _Args&&... a_args) {
     LOG_STR(
         style::fg_blue(),

@@ -1,14 +1,12 @@
 #pragma once 
 
 #include "common.hpp"
-#if CPP26
 #include "cfg_metadata.hpp"
-#endif 
 #include <optional>
 #include <string_view>
 namespace cfg{
 template<typename T>
-    LSP_IGNORE(requires valid_config_struct<T>)
+    LSP_IGNORE(requires is_root_config<T> && is_valid_root_config<T>)
 struct Storage{
     using config_type = T;
     T live{}; 

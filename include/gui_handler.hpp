@@ -171,9 +171,6 @@ auto edit_config_window(Storage<T> & storage) -> ConfigActions{
         .load_from_disk   = load_from_disk,
         .reset_to_default = reset_to_default,
     };
-    
-
-
 }
 
 } // NOTE: namespace cfg

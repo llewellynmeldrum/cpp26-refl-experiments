@@ -3,6 +3,8 @@
 #include "gui.hpp"
 #include "window.hpp"
 
+#include "test_config.hpp"
+
 struct Engine{
     Engine(const Engine &) = delete;
     Engine(Engine &&) = delete;

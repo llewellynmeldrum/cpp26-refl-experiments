@@ -75,10 +75,11 @@ auto Gui::framebuffer_scale_y() -> f32{
 
 auto Gui::edit_configs() -> void{
     auto& e = Engine::get();
-    using Reg = cfg::Registration<Config>;
+    using T = Config;
+    auto reg = cfg::get_registration<T>();
     auto entire_screen = ui::AvaliableRegion();
     ig::SetNextWindowSize(entire_screen);
-    if (ig::Begin(std::string(Reg::config_name).c_str())){
+    if (ig::Begin(std::string(reg.config_name).c_str())){
         auto res = cfg::edit_config_window(e.config);
         ig::End();
         if (res.reset_to_default){

@@ -367,14 +367,14 @@ template<typename T>
 auto serialize_root_table(T const& root) -> std::string{
     static constexpr bool print_dbg_info = true;
     using namespace std::meta;
-    using Reg = cfg::Registration<T>;
+    auto reg = cfg::get_registration<T>();
 
     auto const preface = std::format(
         "# === \n"
         "# struct {0}: {1}\n"
         "# ===\n",
-        Reg::config_name,
-        Reg::description
+        reg.config_name,
+        reg.description
     );
 
     Writer w;
@@ -382,7 +382,7 @@ auto serialize_root_table(T const& root) -> std::string{
     serialize_fields_of<T>(serialize_context<T>{
         .val = root,
         .w = w,
-        .identifier = std::string(Reg::config_name),
+        .identifier = std::string(reg.config_name),
         .comment = std::string(""),
         .parent_is_array = false,
         .includeComma = false,
@@ -390,7 +390,7 @@ auto serialize_root_table(T const& root) -> std::string{
     });
     w.pop_scope();
     if constexpr (print_dbg_info){
-        LOG_DBG("Finished serializing '{}'."sv,Reg::config_name);
+        LOG_DBG("Finished serializing '{}'."sv,reg.config_name);
     }
     return std::format("{}\n\n{}",preface, w.serialize());
 }
@@ -411,7 +411,6 @@ namespace cfg{
 // include/test_config.hpp
 template<typename T>
 auto serialize_toml(T const& root) -> std::vector<std::byte>{
-    using Reg = cfg::Registration<T>;
     auto res = serialize_root_table(root);
     return io::to_byte_vector(res);
 }

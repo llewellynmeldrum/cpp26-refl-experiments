@@ -2,6 +2,7 @@
 #include <concepts>
 #include <ranges>
 #include <tuple>
+#include <format>
 #include <type_traits>
 
 template<typename T>
@@ -35,6 +36,8 @@ concept same_as_all = (std::same_as<T, Ts> && ...);
 template<typename T, typename ...Ts>
 concept same_as_none = ((!std::same_as<T, Ts>) && ...);
 
+template<typename ...Ts>
+concept all_are_formattable = (std::formattable<Ts,char> && ...);
 
 
 template<typename T, typename ...Ts>

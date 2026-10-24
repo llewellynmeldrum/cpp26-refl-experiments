@@ -1,6 +1,7 @@
 
 #pragma once 
 //#include "config_meta.hpp"
+#include "cfg_annotations.hpp"
 #include "common.hpp"
 #include "cppslop.hpp"
 #include "cfg_registration.hpp"
@@ -66,7 +67,8 @@ struct AUTO_FORMAT NoiseCfg{
     f32 fractal_lacunarity{2.0f};
 };
 
-struct AUTO_FORMAT Config {
+struct AUTO_FORMAT CFG_REGISTER_ROOT_CONFIG("Example config.", "Contains a few odd fields.")
+Config {
     std::string str{"random kid:"};
     Player player;
     NoiseCfg noise;
@@ -80,10 +82,4 @@ struct AUTO_FORMAT Config {
         Enemy{.name = "sci"},
     };
 };
-
-REGISTER_CONFIG(
-    Config,
-    "Config", 
-    "Main config struct."
-);
 

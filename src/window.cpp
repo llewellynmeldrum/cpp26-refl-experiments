@@ -1,4 +1,5 @@
 #include "window.hpp"
+#include <imgui.h>
 
 auto Window::close() -> void{
     shouldClose = true;
@@ -70,19 +71,27 @@ auto Window::show() ->void{
 
 auto Window::handle_inputs() -> void{
     SDL_Event event;
-    while (SDL_PollEvent(&event)) {
-        ImGui_ImplSDL3_ProcessEvent(&event);
-        if (event.type == SDL_EVENT_KEY_DOWN){
-            if (event.key.mod & SDL_KMOD_CTRL){
-                if (event.key.key == SDLK_C){
-                    shouldClose = true;
-                }
+    auto handle_key_down = [&](auto key, auto mods){
+        if (mods & SDL_KMOD_CTRL){
+            if (key == SDLK_C){
+                shouldClose = true;
             }
         }
-        if (event.type == SDL_EVENT_QUIT)
+    };
+
+    while (SDL_PollEvent(&event)) {
+        ImGui_ImplSDL3_ProcessEvent(&event);
+        if (event.type == SDL_EVENT_QUIT){
             shouldClose = true;
-        if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED && event.window.windowID == SDL_GetWindowID(m_window))
+        }
+        if (ig::GetIO().WantCaptureKeyboard){ continue; }
+
+        if (event.type == SDL_EVENT_KEY_DOWN){
+            handle_key_down(event.key.key, event.key.mod);
+        }
+        if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED && event.window.windowID == SDL_GetWindowID(m_window)){
             shouldClose = true;
+        }
     }
 }
 

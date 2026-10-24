@@ -1,68 +1,8 @@
 #pragma once 
-#include <format>
-#include <optional>
-
-#include <libassert/assert.hpp>
-
-#include "primitive_types.hpp"
-#include "static_styling.hpp"
-
-
-
-#if CLANGD_PARSE
-    #define CFG_RANGE(min,max) 
-    #define CFG_NOTE(txt) 
-    #define CFG_SKIP  
-#else
-    #define CFG_RANGE(min,max)  [[=cfg::Range{min,max}]]
-    #define CFG_NOTE(txt)       [[=cfg::Note{std::define_static_string(txt)}]]
-    #define CFG_SKIP            [[=cfg::Skip{}]]
-#endif
-namespace cfg {
-// NOTE: Maybe Range for string should represent the min and max length of the string
-// TODO: as a rule, scalar elements of containers should inherit the range of their container
-// Also i think that scalar members of a struct with a range should get them too 
-struct Range{
-    f64 min{-std::numeric_limits<f64>::infinity()};
-    f64 max{+std::numeric_limits<f64>::infinity()}; 
-    template<typename T>
-    static constexpr auto default_value()->Range{
-        return {
-            .min = static_cast<f64>(std::numeric_limits<T>::lowest() / 2.0),
-            .max = static_cast<f64>(std::numeric_limits<T>::max() / 2.0),
-        };
-    }
-};
-struct Note{ char const* txt{}; };
-struct Skip{ [[maybe_unused]] char const* reason{};};
-
-} // NOTE: namespace cfg
-namespace cfg{
-template<typename T>
-struct FieldMetadata{
-    using value_type = T;
-    T                               m_default_val;
-    std::optional<cfg::Range>    m_range              {std::nullopt};
-    const char*                     m_key_identifier     {nullptr};
-    const char*                     m_note               {nullptr};
-    bool                            m_should_skip{};
-    constexpr auto key() const -> const char* {
-        return m_key_identifier;
-    }
-    constexpr auto range() const -> cfg::Range {
-        ASSERT(m_range.has_value());
-        return *m_range;
-    }
-    constexpr auto is_inside_range(T const& val) const -> bool {
-        ASSERT(m_range.has_value());
-        return (range().min <= val && val <= range().max);
-    }
-};
-} // NOTE: namespace cfg
-
 #include "common.hpp"
+#include "cfg_annotations.hpp"
+
 #if CPP26
-// --- formerly cfg_metadata.refl.hpp ---
 #include <meta>
 #include <concepts>
 
@@ -70,10 +10,18 @@ struct FieldMetadata{
 #include "meta_helpers.hpp"
 #include "toml_traits.hpp"
 #include "static_utils.hpp"
-#include "cfg_registration.hpp" // cfg::Registration, used by validate_recursive
+#include "cfg_registration.hpp" 
 #include "annotation_helpers.hpp"
+#include "static_styling.hpp"
+
 
 namespace cfg{
+template<typename T>
+constexpr inline bool is_root_config_v = has_annotation<cfg::Registration>(^^T);
+
+template<typename T>
+concept is_root_config = is_root_config_v<T>;
+
 
 
 consteval auto try_get_range(std::meta::info m) -> std::optional<cfg::Range>{
@@ -85,6 +33,14 @@ consteval auto try_get_note(std::meta::info m) -> std::optional<cfg::Note>{
 consteval auto should_skip_field(std::meta::info m) -> bool{ 
     return has_annotation<cfg::Skip>(m);
 }
+template<typename T>
+    requires is_root_config<T>
+consteval auto get_registration() -> cfg::Registration{
+    return *try_get_annotation_of<cfg::Registration>(^^T);
+}
+//consteval auto is_root_config(std::meta::info m) -> bool{
+//    return has_annotation<cfg::Registration>(m);
+//}
 
 
 
@@ -186,11 +142,10 @@ template<typename T>
 constexpr inline bool valid_config_struct_v = static_validate_root_cfg<T>();
 
 template<typename T>
-concept valid_config_struct = valid_config_struct_v<T>;
+concept is_valid_root_config = valid_config_struct_v<T>;
 
 template<typename T>
 inline auto validate_recursive(T const& obj, std::string path) -> bool{
-    using Reg = cfg::Registration<T>;
     using namespace std::meta;
 
     template for (constexpr auto m: nonstatic_members_array<T>()){
@@ -204,8 +159,8 @@ inline auto validate_recursive(T const& obj, std::string path) -> bool{
             bool gt_range =  val > r.max;
             if (lt_range || gt_range){
                 LOG_WARN(
-                    "Field '{}' (of config '{}') contains value ({}) outside of range [{},{}] ({})",
-                    Reg::config_name, cur_path, val, r.min, r.max,
+                    "Field '{}' contains value ({}) outside of range [{},{}] ({})",
+                    cur_path, val, r.min, r.max,
                     lt_range 
                     ? std::format("{} < {}",val,r.min)
                     : std::format("{} > {}",val,r.max)

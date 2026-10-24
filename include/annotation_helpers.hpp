@@ -1,7 +1,8 @@
 #pragma once 
 #include "common.hpp"
-#if CPP26
 #include <meta>
+#if CPP26
+
 template<typename AnnoType>
 consteval auto try_get_annotation_of(std::meta::info m) -> std::optional<AnnoType>{
     auto v = annotations_of_with_type(m, ^^AnnoType);

@@ -3,7 +3,7 @@ Diagnostics:
   Suppress: ["type_unsupported", "unknown_argument", "invalid_consteval_call"]
 CompileFlags:
   Remove: [-freflection, -Wfatal-errors]
-  Add: [-DCLANGD_PARSE=1, -DCPP26=1, -ferror-limit=0]
+  Add: [-DCLANGD_PARSE=1, -DCPP26=1,-Dcpp26=1, -ferror-limit=0]
 ---
 # Headers have no compile_commands.json entry, so clangd borrows a command from a
 # "similar" .cpp, often a dependency's file without libassert's paths. Add them here.

@@ -1,29 +1,31 @@
 #pragma once 
-#include "meta_shorthand.hpp"
-#include "common.hpp"
-#if CPP26
+// USAGE:
+// Annotate your structs declaration with the refl::auto_format.
+// Alternatively, if you want something clangd23 friendly, use the ANNO_AUTO_FMT macro.
+
 #include <ranges>
 #include <format>
+
+#include "meta_shorthand.hpp"
+#include "common.hpp"
 #include "meta_helpers.hpp"
 #include "annotation_helpers.hpp"
+
+#if !CLANGD_PARSE
+#define AUTO_FORMAT [[=refl::auto_format]]
+#else
+#define AUTO_FORMAT 
+#endif
+
+#if CPP26
 namespace refl{
 
 struct auto_format_tag{};
 inline constexpr auto auto_format = auto_format_tag{};
 template<typename T>
 concept auto_formattable = has_annotation<refl::auto_format_tag>(^^T);
-#if !defined(CLANGD_PARSE)
-#define AUTO_FORMAT [[=refl::auto_format]]
-#else
-#define AUTO_FORMAT 
-#endif
 
 
-
-
-struct auto_formatter;
-} // NOTE: namespace refl
-namespace refl{
 struct auto_formatter{
     struct format_opts{
         bool subfields_print_types{false};
@@ -149,6 +151,8 @@ struct auto_formatter{
 
 };
 } // NOTE: namespace refl
+
+
 template<typename T> requires refl::auto_formattable<T>
 struct std::formatter<T> : refl::auto_formatter { };
 #endif // CPP26

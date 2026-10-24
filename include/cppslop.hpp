@@ -1,8 +1,6 @@
 #pragma once
-#ifndef __cplusplus
-	#error "This header is intended for c++ only."
-#endif // __cplusplus
 
+#include "common.hpp"
 #include <cmath>
 #include "primitive_types.hpp"
 #include <stack>

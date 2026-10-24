@@ -1,37 +1,19 @@
 #pragma once 
 #include <concepts>
 #include <string_view>
+#include <meta>
+#include <ranges>
 
-#include "test_config.hpp"
 #include "concept_helpers.hpp"
 #include "primitive_types.hpp"
 #include "cppslop.hpp"
-
-namespace cfg{
-
-template<typename T>
-concept valid_registration = requires(T v){
-    sizeof(Registration<T>); // check if the specialization exists at all
-
-    {Registration<T>::config_name} -> same_as_nocvref<std::string_view>;
-    {Registration<T>::description} -> same_as_nocvref<std::string_view>;
-
-};
-
-template<typename T> requires cfg::valid_registration<T>
-auto get_default() -> T { return T{}; }
-} // namespace cfg
-//
-
 #include "common.hpp"
-#if CPP26
-// --- formerly cfg_helpers.refl.hpp ---
-#include <meta>
-#include <ranges>
 #include "cfg_traits.hpp"
+#include "cfg_metadata.hpp"
 #include "meta_helpers.hpp"
 #include "toml_traits.hpp"
 
+#if CPP26
 namespace cfg::meta{
 inline consteval auto is_scalar_member(std::meta::info m){
     return cfg::meta::is_scalar_type(dealias(remove_cvref(type_of(m))));

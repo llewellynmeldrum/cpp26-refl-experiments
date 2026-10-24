@@ -25,13 +25,12 @@ int main(){
     #if CPP26
     str = std::string(std::meta::identifier_of(^^Config));
     #endif 
-    if (cfg::static_validate_root_cfg<Config>()){
-        LOG_DBG("Validated config for T='{}'. No static errors."sv, str);
-    }
     auto storage = cfg::Storage<Config>{.filename = "config.toml"};
     if (cfg::load_from_disk(storage)){
-        LOG_INFO("Succesfully loaded config from storage ({}):",storage.filename);
-        LOG_INFO("\nlive: {:t}", storage.live);
+        LOG_INFO("Loaded config from '{}':",storage.filename);
+        IF_CPP26(
+            LOG_INFO("\nlive: {:t}", storage.live);
+        )
     } else{
         LOG_ERROR("Failed to load config from storage.");
     }
