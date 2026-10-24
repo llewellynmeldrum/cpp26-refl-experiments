@@ -17,7 +17,9 @@
 #include "primitive_types.hpp"
 namespace ig = ImGui; //NOLINT
 namespace ui{
-
+[[nodiscard]] inline  auto ItemSpacing() -> auto { return ig::GetStyle().ItemSpacing;}
+[[nodiscard]] inline  auto AvaliableRegion() -> auto { return ig::GetContentRegionAvail();}
+[[nodiscard]] inline  auto ElementHeight() -> f32{ return ig::GetFrameHeightWithSpacing();}
 inline auto InlineTooltip(std::string_view desc) -> void {
     ig::SameLine();
     ig::TextDisabled("(?)");
@@ -28,7 +30,13 @@ inline auto InlineTooltip(std::string_view desc) -> void {
         ig::EndTooltip();
     }
 }
-inline auto ApplyTooltip(std::string_view desc) -> void {
+// TODO: I want to make a cstring_view type, which is basically just a string view that guarnt
+//constexpr auto cstr(std::string_view sv)-> char const*{ return std::string().c_str();}
+//inline auto Button(std::string_view desc, std::string_view hint="") -> void {
+//    ig::Button(cstr(desc))
+//    ui::Hint("Resets all fields to defaults, according to their initializers.");
+//}
+inline auto Hint(std::string_view desc) -> void {
     ig::SameLine();
     if (ig::BeginItemTooltip()) {
         ig::PushTextWrapPos(ig::GetFontSize() * 35.0f);
@@ -46,7 +54,7 @@ inline auto ClampedSlider(
 ) -> bool {
     auto changed = false;
     if constexpr (cfg::concepts::is_scalar_integral<T>){
-        LOG_DBG("t={},min:{},max:{}",stable_type_name<T>(),range.min,range.max);
+        LOG_DBG("t={},min:{},max:{}"sv,stable_type_name<T>(),range.min,range.max);
         changed = ig::SliderInt(std::string(label).c_str(),&v,range.min, range.max, "%d", ImGuiSliderFlags_ClampOnInput);
     }else {
         changed = ig::SliderFloat(std::string(label).c_str(),&v,range.min, range.max, "%.3f", ImGuiSliderFlags_ClampOnInput);

@@ -114,8 +114,19 @@ constexpr auto string_bytes(std::string s){
 }
 #define LOG_DBG_EXPR(expr) LOG_DBG("{} = {}", #expr, expr);
 #define LOG_STR_BYTES(expr) LOG_DBG("{} = {} ({})", #expr, expr, string_bytes(expr));
+
 template <class... _Args>
 inline constexpr void LOG_DBG(std::format_string<_Args...> a_fmt, _Args&&... a_args) {
+    LOG_STR(
+        style::fg_rgb(140,0,190),
+        "DBG"sv,
+        style::fg_rgb(190,0,255),
+        std::format(a_fmt,std::forward<_Args>(a_args)...)
+    );
+}
+template <class... _Args>
+inline constexpr void LOG_DBG(bool pred, std::format_string<_Args...> a_fmt, _Args&&... a_args) {
+    if (!pred) return;
     LOG_STR(
         style::fg_rgb(140,0,190),
         "DBG"sv,

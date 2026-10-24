@@ -50,7 +50,7 @@ inline auto move_file_to(fs::path src, fs::path dst)->bool{
         LOG_ERROR("Unable to move file '{}' to '{}': {}",src.string(),dst.string(),res.error().message());
         return false;
     }
-    LOG_DBG("Successfully moved file '{}' to '{}'",src.string(),dst.string());
+    LOG_DBG("Successfully moved file '{}' to '{}'"sv,src.string(),dst.string());
     return true;
 }
 inline auto delete_file(fs::path file_path)->bool{
@@ -59,7 +59,7 @@ inline auto delete_file(fs::path file_path)->bool{
         LOG_ERROR("Unable to delete file '{}': {}",file_path.string(), res.error().message() );
         return false;
     }
-    LOG_DBG("Deleted file '{}' succesfully.",file_path.string());
+    LOG_DBG("Deleted file '{}' succesfully."sv,file_path.string());
     return true;
 }
 inline auto atomic_save_to_file(fs::path filepath, std::span<const std::byte>bytes) -> bool {

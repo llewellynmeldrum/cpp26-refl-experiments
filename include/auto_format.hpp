@@ -1,23 +1,29 @@
 #pragma once 
-
+#include "meta_shorthand.hpp"
+#include "common.hpp"
+#if CPP26
 #include <ranges>
 #include <format>
-#include "meta_shorthand.refl.hpp"
-#include "meta_helpers.refl.hpp"
+#include "meta_helpers.hpp"
+#include "annotation_helpers.hpp"
 namespace refl{
+
+struct auto_format_tag{};
+inline constexpr auto auto_format = auto_format_tag{};
+template<typename T>
+concept auto_formattable = has_annotation<refl::auto_format_tag>(^^T);
+#if !defined(CLANGD_PARSE)
+#define AUTO_FORMAT [[=refl::auto_format]]
+#else
+#define AUTO_FORMAT 
+#endif
+
+
+
+
 struct auto_formatter;
-
-template<typename T> static constexpr bool auto_formatter_enabled = 
-    std::is_base_of_v<
-        auto_formatter,
-        std::formatter<
-            std::remove_cvref_t<T>
-        >
-    >;
-
-#define USE_AUTO_FORMATTER(T) template<> struct std::formatter<T> : refl::auto_formatter { };
-
-
+} // NOTE: namespace refl
+namespace refl{
 struct auto_formatter{
     struct format_opts{
         bool subfields_print_types{false};
@@ -109,7 +115,7 @@ struct auto_formatter{
         auto out = std::format_to(ctx.out(), "");
         // base case: formattable natively (i.e not one of ours)
         out = apply_indent(ctx, indent);
-        if constexpr (!auto_formatter_enabled<T>){
+        if constexpr (!auto_formattable<T>){
             out = format_natively(obj, identifier, ctx,opts, indent+1);
         } else{
             if (is_static){
@@ -142,4 +148,7 @@ struct auto_formatter{
     }
 
 };
-}// namespace refl
+} // NOTE: namespace refl
+template<typename T> requires refl::auto_formattable<T>
+struct std::formatter<T> : refl::auto_formatter { };
+#endif // CPP26

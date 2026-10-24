@@ -1,47 +1,84 @@
+
 #pragma once 
 //#include "config_meta.hpp"
+#include "common.hpp"
 #include "cppslop.hpp"
 #include "cfg_registration.hpp"
 #include "cfg_metadata.hpp"
 #include "cfg_traits.hpp"
 // in config.hpp
 
-struct Vector2{
+#include "auto_format.hpp"
+struct AUTO_FORMAT Vector2{
     float x{};
     float y{};
-};
-struct DisplayConfig{
-    NOTE("Vertical field of view.") RANGE(5.0f, 120.0f)   
+}; 
+
+struct AUTO_FORMAT CameraSettings{
+    CFG_NOTE("Vertical field of view.") CFG_RANGE(5.0f, 120.0f)  
     f32 fov{10.0f};
 
-    NOTE("Default window width.") RANGE(640.0f, 3840.0f)   
-    f32 window_width_px{1000.0f};
+    CFG_NOTE("Camera pan movement speed multiplier (mouse).") CFG_RANGE(0.1f, 10.0f)  
+    f32 mouse_sensitivity_x{1.0f};
 
-    NOTE("Default window height.") RANGE(480.0f, 2160.0f)   
-    f32 window_height_px{1000.0f};
+    CFG_NOTE("Camera pan movement speed multiplier (mouse).") CFG_RANGE(0.1f, 10.0f)  
+    f32 mouse_sensitivity_y{1.0f};
 
-    NOTE("Default window position (vector).")              
-    Vector2 window_pos_px{0.0f,0.0f};
+    CFG_NOTE("Display size (px).") 
+    Vector2 display_extent_px{1024.0f,768.0f};
+}; 
+
+struct AUTO_FORMAT Player{
+    CFG_NOTE("Players name.") 
+    std::string name{"n/a"};
+
+    CFG_NOTE("Player movement speed multiplier") CFG_RANGE(0.0f,10.0f)
+    f32 movespeed{1.0f};
+
+    Vector2 spawn_pos{0.0f,0.0f};
+    CameraSettings camera_settings;
+
+// TODO: enable this to test range being inherited by children. i think i only enabled it for arrays
+//    CFG_NOTE("Player spawn position") CFG_RANGE(0.0f,10.0f)
 };
-struct CameraConfig{
-    NOTE("Vertical field of view.")           RANGE(5.0f, 120.0f)   f32 fov{10.0f};
+
+struct AUTO_FORMAT Enemy{
+    CFG_NOTE("Enemy name") CFG_RANGE(0.0f,10.0f)
+    std::string name{};
+
+    CFG_NOTE("Enemy movement speed multiplier") CFG_RANGE(0.0f,10.0f)
+    f32 movespeed{1.0f};
 };
-struct MovementConfig{
-    NOTE("Camera movement speed multiplier.") RANGE(0.1f, 10.0f)  f32 move_speed{1.0f};
-    NOTE("Camera pan movement speed multiplier.") RANGE(0.1f, 10.0f)  f32 pan_speed{1.0f};
+struct AUTO_FORMAT NoiseCfg{
+    CFG_NOTE("Noise type, eg perlin, simplex")
+    std::string noise_type{"perlin"};
+
+    CFG_NOTE("Noise frequency.") CFG_RANGE(0.0f,2.0f)
+    f32 freq{1.0f};
+
+    CFG_NOTE("Number of octaves.") CFG_RANGE(1,10)
+    i32 octave_count{1};
+
+    CFG_NOTE("Fractal type, eg ridged, fractional brownian motion (fBm)") 
+    std::string fractal_type{"fBm"};
+
+    CFG_NOTE("Fractal lacunarity, i.e the rate of frequency increase of each octave") CFG_RANGE(0.0f,10.0f)
+    f32 fractal_lacunarity{2.0f};
 };
-struct PlayerConfig{
-    MovementConfig movement;
-    CameraConfig camera;
-    DisplayConfig display;
-};
-struct Config {
-    std::string str{"hi"};
-    RANGE(0, 100) i32 foo = 5;
-    PlayerConfig player;
-    NOTE("These are some floats") std::array<int, 5> integers = {1,2,3,4,5};
-    std::array<float, 5> floats = {1,2,3,4,5};
-    std::array<MovementConfig,5 > move_cfgs= {};
+
+struct AUTO_FORMAT Config {
+    std::string str{"random kid:"};
+    Player player;
+    NoiseCfg noise;
+
+    CFG_NOTE("Enemy list") 
+    std::array<Enemy, 5> enemies = {
+        Enemy{.name = "hientists"},
+        Enemy{.name = "have"},
+        Enemy{.name = "discovered"},
+        Enemy{.name = "a"},
+        Enemy{.name = "sci"},
+    };
 };
 
 REGISTER_CONFIG(

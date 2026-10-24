@@ -1,6 +1,6 @@
 #pragma once
 #include "cfg_helpers.hpp"
-#include "cfg_metadata.refl.hpp"
+#include "cfg_metadata.hpp"
 #include "cfg_parse.hpp"
 #include "cfg_storage.hpp"
 #include "file_io.hpp"
@@ -60,13 +60,12 @@ auto load_from_disk(cfg::Storage<T>& storage) -> bool{
     if (!fs::exists(config_file_path)){
         LOG_WARN(
             "Whilst trying to LOAD config file '{}' from disk:\n"
-            "No config file ('{}') exists for registered config struct '{}'. \n"
-            "Creating file '{}' with defaults from '{}'...",
+            "\tNo config file ('{}') exists for registered config struct '{}'. \n"
+            "\tCreating file '{}' with defaults from '{}'...",
             config_file_path,
             config_file_path, Reg::config_name,
             config_file_path, Reg::config_name
         );
-        io::create_file(config_file_path);
         cfg::write_to_file<T>(config_file_path, cfg::get_default<T>());
     }
     storage.on_disk_cache = cfg::parse_toml<T>(storage.live, config_file_path);

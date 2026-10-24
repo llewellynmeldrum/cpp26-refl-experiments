@@ -1,13 +1,13 @@
 #include <fstream>
 #include <iostream>
 #include <filesystem>
-#include "meta_shorthand.refl.hpp"
+#include "meta_shorthand.hpp"
 
 
 //#include <toml++/toml.hpp>
 #include <expected_fs/expected_fs.hpp>
 
-#include "toml.refl.hpp"
+#include "toml.hpp"
 #include "file_io.hpp"
 #include "primitive_types.hpp"
 #include "logger.hpp"
@@ -18,10 +18,12 @@
 
 namespace fs = std::filesystem;
 namespace efs = expected_fs;
+#if CPP26
 #ifndef STD_META_SHORTHAND
     namespace meta = std::meta;
     #define STD_META_SHORTHAND
 #endif 
+#endif // CPP26
 
 
 

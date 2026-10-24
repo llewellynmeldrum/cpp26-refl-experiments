@@ -7,6 +7,7 @@ struct FieldInfo{
     std::optional<cfg::Range> range;
     std::optional<std::string_view> note;
     std::optional<size_t> index{};
+    bool is_root{false};
     constexpr auto has_name()->bool    {return name.has_value();}
     constexpr auto has_range()->bool    {return range.has_value();}
     constexpr auto has_note()->bool     {return note.has_value();}
@@ -27,3 +28,18 @@ struct FieldInfo{
         }
     }
 };
+
+#include "common.hpp"
+#if CPP26
+// --- formerly field_info.refl.hpp ---
+#include <meta>
+template<std::meta::info m>
+consteval auto make_field_info() -> FieldInfo{
+    constexpr auto note_anno = cfg::try_get_note(m);
+    return FieldInfo{
+        .name = std::meta::has_identifier(m) ? identifier_of(m) : std::optional<std::string_view>{},
+        .range = cfg::try_get_range(m),
+        .note = note_anno ? std::string_view(note_anno.value().txt) : std::optional<std::string_view>{},
+    };
+}
+#endif // CPP26

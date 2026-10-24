@@ -3,17 +3,7 @@ Diagnostics:
   Suppress: ["type_unsupported", "unknown_argument", "invalid_consteval_call"]
 CompileFlags:
   Remove: [-freflection, -Wfatal-errors]
-  Add: [-DCLANGD_PARSE=1]
----
-# Disable all diagnostics in .refl.* files, but use the clang C++26 flags
-If: 
-  PathMatch: '.*\.refl\.(cpp|hpp)$'
-CompileFlags:
-  Add: [-std=c++2c, -ferror-limit=0]
-Diagnostics:
-  Suppress: "*"
-Index:
-  Background: Skip
+  Add: [-DCLANGD_PARSE=1, -DCPP26=1, -ferror-limit=0]
 ---
 # Headers have no compile_commands.json entry, so clangd borrows a command from a
 # "similar" .cpp, often a dependency's file without libassert's paths. Add them here.
@@ -22,8 +12,8 @@ If:
 CompileFlags:
   Add:
     - -isystem/Users/llewie/code/proj/cpp26-refl/external/libassert/include
-    - -isystem/Users/llewie/code/proj/cpp26-refl/build/external/libassert/include
+    - -isystem/Users/llewie/code/proj/cpp26-refl/build/dev/external/libassert/include
     - -isystem/Users/llewie/code/proj/cpp26-refl/external/cpptrace/include
-    - -isystem/Users/llewie/code/proj/cpp26-refl/build/_deps/cpptrace-build/include
+    - -isystem/Users/llewie/code/proj/cpp26-refl/build/dev/_deps/cpptrace-build/include
     - -DLIBASSERT_STATIC_DEFINE
     - -DCPPTRACE_STATIC_DEFINE

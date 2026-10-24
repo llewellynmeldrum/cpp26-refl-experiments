@@ -22,25 +22,52 @@ template<typename T> requires cfg::valid_registration<T>
 auto get_default() -> T { return T{}; }
 } // namespace cfg
 //
-template<typename T>
-inline consteval auto stable_type_name_primitives(){
-    #define DECL_STABLE_NAME(U, NAME) if (std::same_as<std::remove_cvref_t<T>,U>) {return NAME ##sv;}
-    DECL_STABLE_NAME( i8, "i8")
-    DECL_STABLE_NAME(i16, "i16")
-    DECL_STABLE_NAME(i32, "i32")
-    DECL_STABLE_NAME(i64, "i64")
 
-    DECL_STABLE_NAME( u8, "u8")
-    DECL_STABLE_NAME(u16, "u16")
-    DECL_STABLE_NAME(u32, "u32")
-    DECL_STABLE_NAME(u64, "u64")
+#include "common.hpp"
+#if CPP26
+// --- formerly cfg_helpers.refl.hpp ---
+#include <meta>
+#include <ranges>
+#include "cfg_traits.hpp"
+#include "meta_helpers.hpp"
+#include "toml_traits.hpp"
 
-    DECL_STABLE_NAME(bool, "bool")
-    DECL_STABLE_NAME(f16, "f16")
-    DECL_STABLE_NAME(f32, "f32")
-    DECL_STABLE_NAME(f64, "f64")
-
-    DECL_STABLE_NAME(std::string, "std::string")
-    #undef DECL_STABLE_NAME
-    return "undefined typename"sv;
+namespace cfg::meta{
+inline consteval auto is_scalar_member(std::meta::info m){
+    return cfg::meta::is_scalar_type(dealias(remove_cvref(type_of(m))));
 }
+inline consteval auto is_toml_array_member(std::meta::info m){
+    return cfg::meta::is_array_type(dealias(remove_cvref(type_of(m))));
+}
+inline consteval auto is_struct_like_member(std::meta::info m){
+    return cfg::meta::is_struct_like(dealias(remove_cvref(type_of(m))));
+}
+template<typename T>
+inline constexpr auto scalar_members_of(){
+    constexpr auto m = ^^T;
+    return std::define_static_array(
+        std::meta::nonstatic_data_members_of(
+            m, std::meta::access_context::current()
+        ) | std::ranges::views::filter(cfg::meta::is_scalar_member)
+    );
+};
+template<typename T>
+inline constexpr auto struct_like_members_of(){
+    constexpr auto m = ^^T;
+    return std::define_static_array(
+        std::meta::nonstatic_data_members_of(
+            m, std::meta::access_context::current()
+        ) | std::ranges::views::filter(cfg::meta::is_struct_like_member)
+    );
+};
+template<typename T>
+inline constexpr auto array_like_members_of(){
+    constexpr auto m = ^^T;
+    return std::define_static_array(
+        std::meta::nonstatic_data_members_of(
+            m, std::meta::access_context::current()
+        ) | std::ranges::views::filter(cfg::meta::is_toml_array_member)
+    );
+};
+} //namespace cfg::meta
+#endif // CPP26

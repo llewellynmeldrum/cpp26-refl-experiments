@@ -16,6 +16,7 @@ TOGGLES := $(if $(B),-D_TIME_REPORT=ON) $(if $(S),-D_MAX_ERRORS=$(S))
 asan_ENV  := ASAN_OPTIONS=detect_leaks=0:color=always:abort_on_error=1:halt_on_error=1
 ausan_ENV := $(asan_ENV) UBSAN_OPTIONS=color=always:print_stacktrace=1:halt_on_error=1
 
+# specifies the default target instead of just picking the first one
 .DEFAULT_GOAL := run
 
 build-%:
@@ -23,6 +24,12 @@ build-%:
 	@cmake --build build/$* $(RELPATH)
 
 run-%: build-%
+ifeq ($(B),1)
+	@echo "-B flag set! Compile time diagnostics will be printed."
+endif
+ifeq ($(S),2)
+	@echo "-S flag set! Will fail on the first error."
+endif
 	@$($*_ENV) ./build/$*/$(APP)
 
 build: build-dev
@@ -33,35 +40,35 @@ clean:
 	cmake --build build/dev --target clean
 clean-all:
 	rm -rf build
-.PHONY: build run debug clean clean-all help
+.PHONY: build run debug clean clean-all help ? h
+
+?: help
+h: help
 help:
-	@echo ""
-	@tput rev;
-	@for i in $$(seq $$(tput cols)); do printf "▀"; done
+	@for i in $$(seq $$(tput cols)); do printf "▂"; done
 	@tput sgr0; tput bold;
-	@echo "usage:"
+	@echo "USAGE:"
 	@tput sgr0;
 	@echo "    make [flags] <target>"
-	@tput rev;
-	@for i in $$(seq $$(tput cols)); do printf "▀"; done
+	@for i in $$(seq $$(tput cols)); do printf "▂"; done
 	@tput sgr0; tput bold; tput sitm;
-	@echo "flags:"
+	@echo "FLAGS:"
 	@tput sgr0;
 	@echo "    -B (B)enchmark compile time   -> Shows the time taken to compile each file."
 	@echo "    -S (S)ingle error             -> fail outright immediately on the first error."
-	@tput rev;
-	@for i in $$(seq $$(tput cols)); do printf "▀"; done
+	@for i in $$(seq $$(tput cols)); do printf "▂"; done;
 	@tput sgr0; tput bold; tput sitm;
-	@echo "targets:"
+	@echo "TARGETS:"
 	@tput sgr0;
 	@echo "    build                         -> builds the default flavour (dev)."
 	@echo "    run                           -> builds the default flavour (dev), and runs the executable."
-	@echo '    build-FLAVOUR                 -> builds with a specific flavour (FLAVOUR)'
-	@echo '    run-FLAVOUR                   -> builds with a specific flavour (FLAVOUR), and runs the executable.'
+	@echo '    build-*                       -> builds with a specific flavour (*)'
+	@echo '    run-*                         -> builds with a specific flavour (*), and runs the executable.'
 	@echo "    debug                         -> builds the default flavour (dev), runs your debugger on that."
 	@echo "    clean                         -> clears the build folder for the default flavour (dev)."
 	@echo "    clean-all                     -> clears ALL build folders."
 	@echo "    help                          -> prints this message."
+	@echo ""
 
 
 

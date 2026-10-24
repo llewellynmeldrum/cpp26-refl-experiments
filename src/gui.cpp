@@ -1,6 +1,12 @@
 #include "gui.hpp"
+#include "cfg_registration.hpp"
 #include "engine.hpp"
+#include "imgui_wrapper.hpp"
 #include <format>
+struct GuiSettings{
+    f32 font_size = 20.0f;
+
+};
 auto Gui::init(
     SDL_Renderer* renderer,
     SDL_Window* window,
@@ -12,24 +18,22 @@ auto Gui::init(
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ig::CreateContext();
-    ImGuiIO& io = ig::GetIO(); (void)io;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
+    ImGuiIO& io = ig::GetIO(); 
+    io.IniFilename = nullptr; 
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
     // Setup Dear ImGui style
     ImGuiStyle& style = ig::GetStyle();
     ig::StyleColorsDark();
-    //ig::StyleColorsLight();
-    //style.FontSizeBase = 16.0f;           // Default to 13.0f when unspecified, which allows crisp legacy font for non-4K screens.
+    style.FontSizeBase = 20.0f;
+    io.Fonts->AddFontDefaultVector();
     style.FrameRounding = 3.0f;
     style.GrabRounding = 3.0f;
 
     // Setup scaling
     style.ScaleAllSizes(main_scale);        // Bake a fixed style scale. (until we have a solution for dynamic style scaling, changing this requires resetting Style + calling this again)
     style.FontScaleDpi = main_scale;        // Set initial font scale. (in docking branch: using io.ConfigDpiScaleFonts=true automatically overrides this for every window depending on the current monitor)
-    //io.ConfigDpiScaleFonts = true;        // [Experimental] Automatically overwrite style.FontScaleDpi in Begin() when Monitor DPI changes. This will scale fonts but _NOT_ scale sizes/padding for now.
-    //io.ConfigDpiScaleViewports = true;    // [Experimental] Scale Dear ImGui and Platform Windows when Monitor DPI changes.
 
     // Setup Platform/Renderer backends
     ImGui_ImplSDL3_InitForSDLRenderer(window, renderer);
@@ -63,3 +67,30 @@ auto Gui::framebuffer_scale_x() -> f32{
 auto Gui::framebuffer_scale_y() -> f32{
     return ig::GetIO().DisplayFramebufferScale.y;
 }
+
+#include "common.hpp"
+#if CPP26
+// --- formerly gui.refl.cpp ---
+#include "gui_handler.hpp"
+
+auto Gui::edit_configs() -> void{
+    auto& e = Engine::get();
+    using Reg = cfg::Registration<Config>;
+    auto entire_screen = ui::AvaliableRegion();
+    ig::SetNextWindowSize(entire_screen);
+    if (ig::Begin(std::string(Reg::config_name).c_str())){
+        auto res = cfg::edit_config_window(e.config);
+        ig::End();
+        if (res.reset_to_default){
+            e.config.live = {};
+        }else if (res.save_to_disk){
+            cfg::save_to_disk(e.config);
+        }else if (res.load_from_disk){
+            cfg::load_from_disk(e.config);
+        }
+        if (res.edited){
+            LOG_DBG("config edited"sv);
+        }
+    }
+}
+#endif // CPP26
