@@ -1,17 +1,22 @@
 #pragma once 
 
+#include <meta>
+#include <numeric>
 #include <optional>
+
+#include "common.hpp"
 #include "imgui_wrapper.hpp"
 #include "cfg_traits.hpp"
 #include "field_info.hpp"
 #include "stable_type_name.hpp"
+#include "cppslop.hpp"
+#include "cfg_helpers.hpp"
+#include "cfg_metadata.hpp"
+#include "toml_traits.hpp"
+#include "meta_helpers.hpp"
+#include "cfg_toml_rw.hpp"
 
 namespace cfg{
-template<typename T>
-auto edit_leaf(T& v) -> bool {
-    static_assert(false, "edit_leaf() is unimplemented for T=" + stable_type_name<T>());
-    return false;
-}
 
 // NOTE: on Leaf
 // leaves are nodes which can be represented by a single widget.
@@ -21,7 +26,7 @@ template<typename T>
 auto edit_leaf(T& v, FieldInfo info) -> bool{
     auto label = info.get_label();
     auto range = info.range.value_or(Range::default_value<T>());
-    bool changed = ui::ClampedSlider<T>(label, v, range, info.tooltip());
+    bool changed = ui::ClampedSlider<T>(label, v, range.min,range.max, info.tooltip());
     return changed;
 }
 
@@ -29,32 +34,28 @@ template<typename T>
     requires concepts::is_string_type<T>
 auto edit_leaf(T& v, FieldInfo info) -> bool{
     auto label = info.get_label();
-    ASSERT(!info.has_range(), "Strings do not support ranges atm. Consider implementing to constrain string length min and max?");
-    bool changed = ui::InputString(label, v, info.tooltip());
+    ASSERT(!info.has_range(), 
+           "Strings do not support ranges atm. Consider implementing to constrain string length min and max?");
+    bool changed = ui::InputString(zstring_view(label), v, info.tooltip());
     return changed;
 }
+template<typename T>
+    requires same_as_nocvref<T,bool>
+auto edit_leaf(T& v, FieldInfo info) -> bool{
+    auto label = info.get_label();
+    auto range = info.range.value_or(Range::default_value<T>());
+    bool changed = ui::ClampedSlider<T>(label, v, range.min,range.max, info.tooltip());
+    return changed;
+}
+template<typename T>
+    requires concepts::is_enum<T> 
+auto edit_leaf(T& v, FieldInfo info) -> bool{
+    auto label = info.get_label();
+    auto hint = info.note_zstring();
+    return ui::EnumDropdown<T>(label,v, hint);
+}
 
-
-
-
-} // NOTE: namespace cfg
-
-#include "common.hpp"
 #if CPP26
-// --- formerly gui_handler.refl.hpp ---
-#include <meta>
-#include <numeric>
-
-#include "cppslop.hpp"
-#include "cfg_helpers.hpp"
-#include "cfg_metadata.hpp"
-#include "toml_traits.hpp"
-#include "meta_helpers.hpp"
-#include "cfg_toml_rw.hpp"
-
-
-//
-namespace cfg{
 template<typename T>
 struct GuiHandler{
     GuiHandler() = delete;
@@ -123,12 +124,22 @@ struct ConfigActions{
 };
 template<typename T>
 auto edit_config_window(Storage<T> & storage) -> ConfigActions{
+    auto reg = cfg::get_registration<T>();
+    auto const main_window_size = ui::ViewportSize() / 2.0f;
+    auto const footer_height = ui::ElementHeight();
+    auto const content_height = ui::AvaliableRegion().y - footer_height - ui::ItemSpacing().y;
+
+
+
+
+    auto main_window = ui::raii::Window(reg.config_name, {
+        .size= main_window_size,
+    });
     auto & root = storage.live;
     bool edited = false;
     ig::ShowMetricsWindow();
-    auto const footer_height = ui::ElementHeight();
-    auto const content_height = ui::AvaliableRegion().y - footer_height - ui::ItemSpacing().y;
-    if (ig::BeginChild("ScrollingBody", {0.0f,content_height})){
+    {
+        auto content = ui::raii::ChildWindow("SrollingBody",{0, content_height});
         template for (constexpr auto m: nonstatic_members_array<T>()){
             using Mt = [:dealias(remove_cvref(type_of(m))):];
             auto info = make_field_info<m>();
@@ -144,27 +155,29 @@ auto edit_config_window(Storage<T> & storage) -> ConfigActions{
             }
         }
     }
-    ig::Separator();
-    ig::EndChild();
-
     bool save_to_disk{}, load_from_disk{}, reset_to_default{};
-    if (ig::BeginChild("##",ImVec2(0,footer_height),0,0)){
+    {
         ig::Separator();
-        save_to_disk = ig::Button(std::format("Save to file",storage.filename).c_str());
-        ui::Hint(std::format("Saves the current live config state to '{}'.",storage.filename));
-        ig::SameLine();
+        auto footer = ui::raii::ChildWindow("##",{0,footer_height});
+        save_to_disk = ui::Button(
+            "Save to file",
+            std::format("Saves the current live config state to '{}'.",storage.filename)
+        );
+        ui::SameLine();
 
+        load_from_disk = ui::Button(
+            "Load from file", 
+            std::format("Loads the config state from '{}'.",storage.filename)
+        );
+        ui::SameLine();
 
-        load_from_disk = ig::Button("Load from file");
-        ui::Hint(std::format("Loads the config state from '{}'.",storage.filename));
-        ig::SameLine();
-
-
-        reset_to_default = ig::Button("Reset to defaults");
-        ui::Hint("Resets all fields to defaults, according to their initializers.");
-        ig::SameLine();
+        reset_to_default = ui::Button(
+            "Reset to defaults",
+            "Resets all fields to defaults, according to their initializers."
+        );
+        ui::SameLine();
     }
-    ig::EndChild();
+
     return {
         .edited           = edited,
         .save_to_disk     = save_to_disk,

@@ -26,10 +26,10 @@ auto Gui::init(
     // Setup Dear ImGui style
     ImGuiStyle& style = ig::GetStyle();
     ig::StyleColorsDark();
-    style.FontSizeBase = 20.0f;
+    style.FontSizeBase = 16.0f;
     io.Fonts->AddFontDefaultVector();
-    style.FrameRounding = 3.0f;
-    style.GrabRounding = 3.0f;
+    style.FrameRounding = 6.0f;
+    style.GrabRounding = 6.0f;
 
     // Setup scaling
     style.ScaleAllSizes(main_scale);        // Bake a fixed style scale. (until we have a solution for dynamic style scaling, changing this requires resetting Style + calling this again)
@@ -68,30 +68,26 @@ auto Gui::framebuffer_scale_y() -> f32{
     return ig::GetIO().DisplayFramebufferScale.y;
 }
 
+
 #include "common.hpp"
+#include "gui_handler.hpp"
 #if CPP26
 // --- formerly gui.refl.cpp ---
-#include "gui_handler.hpp"
 
 auto Gui::edit_configs() -> void{
     auto& e = Engine::get();
     using T = Config;
-    auto reg = cfg::get_registration<T>();
-    auto entire_screen = ui::AvaliableRegion();
-    ig::SetNextWindowSize(entire_screen);
-    if (ig::Begin(std::string(reg.config_name).c_str())){
-        auto res = cfg::edit_config_window(e.config);
-        ig::End();
-        if (res.reset_to_default){
-            e.config.live = {};
-        }else if (res.save_to_disk){
-            cfg::save_to_disk(e.config);
-        }else if (res.load_from_disk){
-            cfg::load_from_disk(e.config);
-        }
-        if (res.edited){
-            LOG_DBG("config edited"sv);
-        }
+
+    auto res = cfg::edit_config_window(e.config_storage);
+    if (res.reset_to_default){
+        e.config_storage.live = {};
+    }else if (res.save_to_disk){
+        cfg::save_to_disk(e.config_storage);
+    }else if (res.load_from_disk){
+        cfg::load_from_disk(e.config_storage);
+    }
+    if (res.edited){
+        LOG_DBG("config edited"sv);
     }
 }
 #endif // CPP26

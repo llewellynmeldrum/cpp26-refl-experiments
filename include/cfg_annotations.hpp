@@ -5,11 +5,13 @@
 #if CLANGD_PARSE
     #define CFG_RANGE(min,max) 
     #define CFG_NOTE(txt) 
+    #define CFG_NAME(name) 
     #define CFG_SKIP  
     #define CFG_REGISTER_ROOT_CONFIG(name,desc)    
 #else
     #define CFG_RANGE(min,max)                        [[=cfg::Range{min,max}]]
     #define CFG_NOTE(txt)                             [[=cfg::Note{std::define_static_string(txt)}]]
+    #define CFG_NAME(name)                             [[=cfg::Name{std::define_static_string(name)}]]
     #define CFG_SKIP                                  [[=cfg::Skip{}]]
     #define CFG_REGISTER_ROOT_CONFIG(name, desc)      [[=cfg::Registration{std::define_static_string(name), std::define_static_string(desc)}]]
 #endif
@@ -34,6 +36,7 @@ struct Range{
     }
 };
 struct Note{ char const* txt{}; };
+struct Name{ char const* txt{}; };
 struct Skip{};
 
 }; // namespace cfg

@@ -17,7 +17,7 @@ struct Engine{
     }
 
     Window window;
-    cfg::Storage<Config> config{.filename = "cfg.toml"sv};
+    cfg::Storage<Config> config_storage{.filename = "cfg.toml"sv};
 
 private:
     Engine() : window ("Test window") {}

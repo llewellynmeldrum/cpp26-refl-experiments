@@ -1,8 +1,10 @@
 #pragma once 
 #include <string>
+#include <type_traits>
 #include <vector>
 #include "cfg_metadata.hpp"
 #include "cfg_registration.hpp"
+#include "cfg_traits.hpp"
 #include "file_io.hpp"
 #include "common.hpp"
 #if CPP26
@@ -154,8 +156,13 @@ auto get_suffix_comment(std::string_view parent_name) -> std::string{
     constexpr auto has_range = try_get_range(field);
     constexpr auto has_note = try_get_note(field);
     auto type_str = std::string{};
-    if constexpr (meta::is_struct_like(dealias(remove_cvref(type_of(field))))){
+    constexpr auto kind = toml::kind_of<Ft>();
+    if constexpr (kind == toml::Kind::Table){
         type_str = std::string("struct ") + std::string(raw_type_name);
+    }else if constexpr (std::is_scoped_enum_v<Ft>){
+        type_str = std::string("enum struct ") + std::string(raw_type_name);
+    }else if constexpr (std::is_enum_v<Ft>){
+        type_str = std::string("enum ") + std::string(raw_type_name);
     }else{
         type_str = std::string(raw_type_name);
     }
@@ -163,7 +170,7 @@ auto get_suffix_comment(std::string_view parent_name) -> std::string{
     auto range_str = std::string{};
     if constexpr (has_range){
         auto r = *has_range;
-        range_str = std::format("range=[{},{}]",r.min,r.max);
+        range_str = std::format("range=[{:.4g},{:.4g}]",r.min,r.max);
     }
 
     auto note_str = std::string{};

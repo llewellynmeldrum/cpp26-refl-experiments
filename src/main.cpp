@@ -21,22 +21,23 @@ int main(){
     cpptrace::register_terminate_handler();
     toml::color::enable();
 
-    auto str = std::string{};
-    #if CPP26
-    str = std::string(std::meta::identifier_of(^^Config));
-    #endif 
-    auto storage = cfg::Storage<Config>{.filename = "config.toml"};
-    if (cfg::load_from_disk(storage)){
-        LOG_INFO("Loaded config from '{}':",storage.filename);
-        IF_CPP26(
-            LOG_INFO("\nlive: {:t}", storage.live);
-        )
-    } else{
-        LOG_ERROR("Failed to load config from storage.");
-    }
+//    auto str = std::string{};
+//    #if CPP26
+//    str = std::string(std::meta::identifier_of(^^Config));
+//    #endif 
+//    auto storage = cfg::Storage<Config>{.filename = "config.toml"};
+//    if (cfg::load_from_disk(storage)){
+//        LOG_INFO("Loaded config from '{}':",storage.filename);
+//        IF_CPP26(
+//            LOG_INFO("\nlive: {:t}", storage.live);
+//        )
+//    } else{
+//        LOG_ERROR("Failed to load config from storage.");
+//    }
     auto& e = Engine::get();
     while (!e.window.shouldClose){
         e.window.show();
     }
+
     return 0;
 }

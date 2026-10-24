@@ -1,6 +1,7 @@
 #pragma once 
 #include "cfg_metadata.hpp"
 #include "cppslop.hpp"
+#include "zstring_view.hpp"
 #include <string_view>
 struct FieldInfo{
     std::optional<std::string_view> name;
@@ -8,6 +9,13 @@ struct FieldInfo{
     std::optional<std::string_view> note;
     std::optional<size_t> index{};
     bool is_root{false};
+    constexpr auto note_zstring()->std::optional<zstring_view>{
+        if (note){
+            return zstring_view(note->data(), note->size());
+        }else{
+            return std::nullopt;
+        }
+    }
     constexpr auto has_name()->bool    {return name.has_value();}
     constexpr auto has_range()->bool    {return range.has_value();}
     constexpr auto has_note()->bool     {return note.has_value();}

@@ -54,6 +54,8 @@ inline consteval auto stable_type_name_meta(std::meta::info m){
     DECL_STABLE_NAME(f16, "f16")
     DECL_STABLE_NAME(f32, "f32")
     DECL_STABLE_NAME(f64, "f64")
+    DECL_STABLE_NAME(std::string, "std::string")
+    DECL_STABLE_NAME(std::string_view, "std::string_view")
 
     #undef DECL_STABLE_NAME
     return display_string_of(remove_cv(m));

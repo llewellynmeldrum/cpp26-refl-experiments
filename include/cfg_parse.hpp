@@ -9,6 +9,7 @@
 
 #include "cfg_metadata.hpp"
 #include "cfg_registration.hpp"
+#include "enum_to_string.hpp"
 #include "file_io.hpp"
 
 #include "common.hpp"
@@ -97,6 +98,7 @@ auto read_scalar(
             toml::to_string(v.type())
         ));
     }
+    // TODO: arent i supposed to be using the Kind enum 
     auto type_match_error = check_type_mismatch<U>(v,path);
     if (type_match_error){
         return std::unexpected(*type_match_error);
@@ -104,9 +106,10 @@ auto read_scalar(
 
     // NOTE: 
     // From here, we can assume the types are at least of the correct category.
-    if constexpr (cfg::concepts::is_scalar_boolean<T>){
+    static constexpr auto kind = toml::kind_of<T>();
+    if constexpr (kind == toml::Kind::Bool){
         return v.as_boolean();
-    } else if constexpr(cfg::concepts::is_scalar_floating_point<T>){
+    } else if constexpr(kind == toml::Kind::Float){
         auto as_f64 = v.as_floating();
         if constexpr (std::same_as<U, f32>){
             static constexpr auto f32_max = std::numeric_limits<f32>::max();
@@ -118,10 +121,10 @@ auto read_scalar(
             }
         }
         return static_cast<U>(as_f64);
-    }else if constexpr(cfg::concepts::is_string_type<T>){
+    }else if constexpr(kind == toml::Kind::String){
         auto as_str = v.as_string();
         return as_str;
-    }else if constexpr(cfg::concepts::is_scalar_char<T>){
+    }else if constexpr(kind == toml::Kind::Char){
         auto as_str = v.as_string();
         if (as_str.length() > 1){
             return get_error(std::format(
@@ -130,7 +133,7 @@ auto read_scalar(
             ));
         }
         return as_str[0];
-    }else if constexpr(cfg::concepts::is_scalar_integral<T>){
+    }else if constexpr(kind == toml::Kind::Int){
         auto i64_val = v.as_integer();
         if constexpr (std::same_as<U, i32>){
             static constexpr auto i32_min = std::numeric_limits<i32>::lowest();
@@ -164,6 +167,11 @@ auto read_scalar(
             }
         }
         return static_cast<U>(i64_val);
+    }else if constexpr (kind == toml::Kind::Enum){
+        auto opt = try_lookup_enum_name<U>("\"" + v.as_string() + "\"");
+        return opt.value_or(U{});
+    }else{
+        static_assert(false);
     }
 }
 

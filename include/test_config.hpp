@@ -50,9 +50,15 @@ struct AUTO_FORMAT Enemy{
     CFG_NOTE("Enemy movement speed multiplier") CFG_RANGE(0.0f,10.0f)
     f32 movespeed{1.0f};
 };
+
+enum struct AUTO_FORMAT NoiseType{
+     Perlin CFG_NOTE("this is perlin!!!!"),
+    Simplex CFG_NOTE("Im just another soul for sale, oh well."),
+     Worlei CFG_NOTE("Kid named worlei"),
+};
 struct AUTO_FORMAT NoiseCfg{
     CFG_NOTE("Noise type, eg perlin, simplex")
-    std::string noise_type{"perlin"};
+    NoiseType noise_type{};
 
     CFG_NOTE("Noise frequency.") CFG_RANGE(0.0f,2.0f)
     f32 freq{1.0f};

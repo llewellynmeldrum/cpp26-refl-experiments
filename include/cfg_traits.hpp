@@ -1,5 +1,6 @@
 #pragma once 
 #include "concept_helpers.hpp"
+#include "enum_to_string.hpp"
 #include "logger.hpp"
 #include "primitive_types.hpp"
 #include <format>
@@ -66,6 +67,7 @@ enum struct Kind{
     Int,
     Float,
     Bool,
+    Char,
     String,
     Enum,
     Array,
@@ -82,8 +84,9 @@ constexpr auto kind_of() -> toml::Kind{
         return Kind::Float;
     } else if constexpr(std::same_as<U, std::string>){
         return Kind::String;
-    } else if constexpr(std::is_enum_v<U>){ //TODO: implement enums
-        static_assert(false, "enums not supported yet");
+    } else if constexpr(std::same_as<U, char>){
+        return Kind::Char;
+    } else if constexpr(std::is_enum_v<U>){ 
         return Kind::Enum;
     }else if constexpr (cfg::traits::is_array_type<U>){
         return Kind::Array;
@@ -103,6 +106,7 @@ concept is_scalar_type = (
     || toml::kind_of<T>() == toml::Kind::Float
     || toml::kind_of<T>() == toml::Kind::Bool
     || toml::kind_of<T>() == toml::Kind::String
+    || toml::kind_of<T>() == toml::Kind::Enum
 );
 template<typename T> 
 concept is_array_type = toml::kind_of<T>() == toml::Kind::Array;
@@ -166,7 +170,8 @@ namespace cfg{
 
 template<typename T>
 constexpr auto serialize_scalar_value(T const& v){
-    if constexpr (cfg::concepts::is_scalar_integral<T>){
+    constexpr static auto kind = toml::kind_of<T>();
+    if constexpr (kind == toml::Kind::Int){
         if constexpr (same_as_nocvref<u64, T>){
             static constexpr u64 i64_max = std::numeric_limits<i64>::max();
             if (v > i64_max){
@@ -175,11 +180,11 @@ constexpr auto serialize_scalar_value(T const& v){
             }
         }
         return std::format("{}",v);
-    } else if constexpr( cfg::concepts::is_scalar_boolean<T>){
+    } else if constexpr(kind == toml::Kind::Bool){
         return std::format("{}", v ? "true" : "false");
-    } else if constexpr (cfg::concepts::is_scalar_char<T>){
-        return std::format("{}",v);
-    }else if constexpr (cfg::concepts::is_scalar_floating_point<T>){
+    } else if constexpr (kind == toml::Kind::Char){
+        return std::format("\"{}\"",v);
+    }else if constexpr (kind == toml::Kind::Float){
         auto s = std::format("{}",v);
         if (s.contains("e") || s.contains("nan") || s.contains("inf")){
             return s;
@@ -187,8 +192,10 @@ constexpr auto serialize_scalar_value(T const& v){
             return s+".0";
         }
         return s;
-    }else if constexpr(cfg::concepts::is_string_type<T>){
+    }else if constexpr(kind == toml::Kind::String){
         return std::format("\"{}\"",v);
+    }else if constexpr(kind == toml::Kind::Enum){
+        return std::format("\"{}\"",name_of_enum_member<T>(v));
     }else{
         static_assert(false, "unable to format scalar value");
     }
