@@ -44,7 +44,7 @@ struct AUTO_FORMAT Player{
 };
 
 struct AUTO_FORMAT Enemy{
-    CFG_NOTE("Enemy name") CFG_RANGE(0.0f,10.0f)
+    CFG_NOTE("Enemy name")
     std::string name{};
 
     CFG_NOTE("Enemy movement speed multiplier") CFG_RANGE(0.0f,10.0f)
@@ -73,12 +73,21 @@ struct AUTO_FORMAT NoiseCfg{
     f32 fractal_lacunarity{2.0f};
 };
 
-struct AUTO_FORMAT CFG_REGISTER_ROOT_CONFIG("Example config.", "Contains a few odd fields.")
+struct AUTO_FORMAT CFG_REGISTER_ROOT_CONFIG("Example Config", "Contains a few odd fields.")
 Config {
     std::string str{"random kid:"};
     Player player;
+    CFG_NOTE("Noise configuration")
     NoiseCfg noise;
 
+    CFG_NOTE("Name list")
+    std::array<std::string, 5> names = {
+        "hientists",
+        "have",
+        "discovered",
+        "a",
+        "sci",
+    };
     CFG_NOTE("Enemy list") 
     std::array<Enemy, 5> enemies = {
         Enemy{.name = "hientists"},

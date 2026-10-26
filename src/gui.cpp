@@ -1,8 +1,12 @@
+#include <format>
+
 #include "gui.hpp"
+#include "cfg_metadata.hpp"
 #include "cfg_registration.hpp"
 #include "engine.hpp"
 #include "imgui_wrapper.hpp"
-#include <format>
+#include "common.hpp"
+#include "gui_handler.hpp"
 struct GuiSettings{
     f32 font_size = 20.0f;
 
@@ -69,14 +73,15 @@ auto Gui::framebuffer_scale_y() -> f32{
 }
 
 
-#include "common.hpp"
-#include "gui_handler.hpp"
 #if CPP26
-// --- formerly gui.refl.cpp ---
 
 auto Gui::edit_configs() -> void{
     auto& e = Engine::get();
     using T = Config;
+//    if (!cfg::is_declaration_valid<Enemy,^^Enemy::name>({})){
+//        ASSERT(false, "bruh");
+//    }
+//    cfg::static_validate_root_cfg<T>();
 
     auto res = cfg::edit_config_window(e.config_storage);
     if (res.reset_to_default){

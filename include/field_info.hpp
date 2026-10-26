@@ -1,10 +1,27 @@
 #pragma once 
+#include <format>
+#include <optional>
+#include <string_view>
+
 #include "cfg_metadata.hpp"
 #include "cppslop.hpp"
 #include "zstring_view.hpp"
-#include <string_view>
-struct FieldInfo{
+#include "auto_format.hpp"
+template<std::formattable<char> T>
+struct std::formatter<std::optional<T>>{
+    constexpr auto parse(std::format_parse_context& ctx) noexcept{return ctx.begin();}
+    template<typename U>
+    constexpr auto format(std::optional<U> const& obj, auto& ctx) const noexcept{
+        if (obj){
+            return std::format_to(ctx.out(),"{}",*obj);
+        }else{
+            return std::format_to(ctx.out(),"nullopt");
+        }
+    }
+};
+struct AUTO_FORMAT FieldInfo{
     std::optional<std::string_view> name;
+
     std::optional<cfg::Range> range;
     std::optional<std::string_view> note;
     std::optional<size_t> index{};
@@ -20,7 +37,7 @@ struct FieldInfo{
     constexpr auto has_range()->bool    {return range.has_value();}
     constexpr auto has_note()->bool     {return note.has_value();}
     constexpr auto tooltip()->std::optional<std::string_view> {return note;}
-    constexpr auto element_of(size_t idx) -> FieldInfo{
+    constexpr auto element_at(size_t idx) -> FieldInfo{
         return {
             .name = name,
             .range = range,
@@ -42,12 +59,13 @@ struct FieldInfo{
 // --- formerly field_info.refl.hpp ---
 #include <meta>
 template<std::meta::info m>
-consteval auto make_field_info() -> FieldInfo{
+consteval auto make_field_info(bool is_root=false) -> FieldInfo{
     constexpr auto note_anno = cfg::try_get_note(m);
     return FieldInfo{
         .name = std::meta::has_identifier(m) ? identifier_of(m) : std::optional<std::string_view>{},
         .range = cfg::try_get_range(m),
         .note = note_anno ? std::string_view(note_anno.value().txt) : std::optional<std::string_view>{},
+        .is_root = is_root,
     };
 }
 #endif // CPP26

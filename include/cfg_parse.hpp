@@ -3,8 +3,9 @@
 #include <concepts>
 #include <string>
 #include <vector>
+#include <string_view>
 #include <ranges>
-
+#include <expected>
 #include <toml11/parser.hpp>
 
 #include "cfg_metadata.hpp"
@@ -14,12 +15,6 @@
 
 #include "common.hpp"
 #if CPP26
-// --- formerly cfg_parse.refl.hpp ---
-#include <ranges>
-#include <vector>
-#include <string_view>
-#include <expected>
-#include <string>
 #include <meta>
 
 #include <toml11/parser.hpp>
@@ -44,7 +39,8 @@ auto check_type_mismatch(
             ) 
         );
     };
-    if constexpr (cfg::concepts::is_scalar_boolean<ExpectedType>){
+    static constexpr auto expected_kind = toml::kind_of<ExpectedType>();
+    if constexpr (expected_kind == toml::Kind::Bool){
         if (!v.is_boolean()){
             return bad_match(stable_type_name<ExpectedType>(), toml::to_string(v.type()));
         }

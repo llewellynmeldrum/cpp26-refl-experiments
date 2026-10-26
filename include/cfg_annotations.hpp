@@ -1,6 +1,7 @@
 #pragma once 
 #include "common.hpp"
 #include "primitive_types.hpp"
+#include "auto_format.hpp"
 
 #if CLANGD_PARSE
     #define CFG_RANGE(min,max) 
@@ -16,12 +17,12 @@
     #define CFG_REGISTER_ROOT_CONFIG(name, desc)      [[=cfg::Registration{std::define_static_string(name), std::define_static_string(desc)}]]
 #endif
 namespace cfg{
-struct Registration{
+struct AUTO_FORMAT Registration{
     char const* config_name{"UNDEFINED CONFIG NAME"}; 
     char const* description{"UNDEFINED CONFIG DESCRIPTION"}; 
 };
 
-struct Range{
+struct AUTO_FORMAT Range{
     // NOTE: Maybe Range for string should represent the min and max length of the string
     // TODO: as a rule, scalar elements of containers should inherit the range of their container
     // Also i think that scalar members of a struct with a range should get them too 
@@ -35,8 +36,8 @@ struct Range{
         };
     }
 };
-struct Note{ char const* txt{}; };
-struct Name{ char const* txt{}; };
+struct AUTO_FORMAT Note{ char const* txt{}; };
+struct AUTO_FORMAT Name{ char const* txt{}; };
 struct Skip{};
 
 }; // namespace cfg

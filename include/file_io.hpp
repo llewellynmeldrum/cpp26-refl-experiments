@@ -1,6 +1,5 @@
 #pragma once 
 #include "logger.hpp"
-#include <expected_fs/expected_fs.hpp>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -8,7 +7,6 @@
 #include <vector>
 
 namespace fs = std::filesystem;
-namespace efs = expected_fs;
 namespace io{
 inline auto to_byte_vector(std::string_view s) -> std::vector<std::byte> {
 
@@ -44,24 +42,30 @@ inline auto save_to_file(fs::path file_path, std::span<const std::byte> bytes)->
     return true;
 
 }
+inline auto report_error(std::string sv, std::error_code const& err){
+    LOG_ERROR("{} .\nDetails: {} -> {}",sv,err.category().name(), err.message());
+}
 inline auto move_file_to(fs::path src, fs::path dst)->bool{
-    auto res = efs::rename(src, dst);
-    if (!res){
-        LOG_ERROR("Unable to move file '{}' to '{}': {}",src.string(),dst.string(),res.error().message());
+    auto err = std::error_code{};
+    fs::rename(src, dst,err);
+    if (err){
+        report_error(std::format("Unable to move file '{}' to '{}'",src.string(), dst.string()), err);
         return false;
     }
     LOG_DBG("Successfully moved file '{}' to '{}'"sv,src.string(),dst.string());
     return true;
 }
 inline auto delete_file(fs::path file_path)->bool{
-    auto res = efs::remove(file_path);
-    if (!res){
-        LOG_ERROR("Unable to delete file '{}': {}",file_path.string(), res.error().message() );
+    auto err = std::error_code{};
+    fs::remove(file_path, err);
+    if (err){
+        report_error(std::format("Unable to delete file '{}'.",file_path.string()), err);
         return false;
     }
     LOG_DBG("Deleted file '{}' succesfully."sv,file_path.string());
     return true;
 }
+
 inline auto atomic_save_to_file(fs::path filepath, std::span<const std::byte>bytes) -> bool {
     // we do atomic writes to a scratch file to preserve previous config files in the case of a crash mid-write
 

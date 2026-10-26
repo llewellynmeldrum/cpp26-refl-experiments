@@ -5,7 +5,6 @@
 
 
 //#include <toml++/toml.hpp>
-#include <expected_fs/expected_fs.hpp>
 
 #include "toml.hpp"
 #include "file_io.hpp"
@@ -17,7 +16,6 @@
 #include "cfg_helpers.hpp"
 
 namespace fs = std::filesystem;
-namespace efs = expected_fs;
 #if CPP26
 #ifndef STD_META_SHORTHAND
     namespace meta = std::meta;

@@ -52,6 +52,11 @@ consteval auto type_accepts_annotation()->bool{
         return true;
     }else if constexpr(anno_t == ^^cfg::Range){
         if constexpr (is_numeric<T>){
+            constexpr auto r = std::meta::extract<cfg::Range>(m);
+            constexpr auto t = dealias(remove_cvref(^^T));
+
+            static_assert(satisfies_concept(^^is_numeric, t), 
+                "Range annotation is only valid for numeric types, '" + std::string(stable_type_name_meta(^^T)) + "' is NOT numeric."); // for the time being. This will need to be changed if i implement it for vector types or for arrays
             return true;
         }else{
             static_assert(false, "cfg::Range is only implemented for numeric types atm. It should probably be inherited by arrays and scalar members of a struct"
@@ -72,6 +77,37 @@ consteval auto type_accepts_annotation()->bool{
         return false;
     }
 }
+template<typename T, std::meta::info m> 
+consteval auto is_declaration_valid(T const& obj) -> bool{
+    using namespace ansi;
+    using namespace std::meta;
+    auto v = obj.[:m:];
+    using Mt = [:remove_cvref(type_of(m)):];
+    if constexpr (cfg::meta::is_scalar_type(type_of(m)) && !has_default_member_initializer(m)){
+        static_error("Scalar field '"+
+                     std::string(display_string_of(dealias(remove_cvref(^^T)))) + "::"+ std::string(identifier_of(m)) 
+                     + "' lacks a default intializer.",
+            "All scalar fields within a config struct and its descendent members require default initializers."
+        );
+        return false;
+    }
+    if constexpr (std::meta::is_const(type_of(m)) || std::meta::is_reference_type(type_of(m))){
+        static_assert(false,
+            "\nERROR: Field'" + std::string(display_string_of(dealias(remove_cvref(^^T)))) + "::"+ std::string(identifier_of(m)) 
+            + "' has an invalid type: -> " + std::string(display_string_of(type_of(m))) 
+            + " <- \n"
+            "Config fields may not be const or reference qualified, as they must trivially modifiable.\n"
+        );
+        return false;
+    }
+
+    template for (constexpr auto anno: annotations_array<m>()){
+        if (!type_accepts_annotation<Mt, anno>()){
+            return false;
+        }
+    }
+    return true;
+}
 template<typename T>
 consteval inline auto static_validate_rec(T const& obj, std::string path) -> bool{
     using namespace ansi;
@@ -80,48 +116,29 @@ consteval inline auto static_validate_rec(T const& obj, std::string path) -> boo
 //    static_assert(false, display_string_of(remove_cvref(type_of(^^obj))) );
     template for (constexpr auto m: nonstatic_members_array<T>()){
         using Mt = [:remove_cvref(type_of(m)):];
-        auto v = obj.[:m:];
         auto cur_path = path + std::string(".") + identifier_of(m);
         
-        if constexpr (cfg::meta::is_scalar_type(type_of(m)) && !has_default_member_initializer(m)){
-            static_error("Scalar field '"+
-                         std::string(display_string_of(dealias(remove_cvref(^^T)))) + "::"+ std::string(identifier_of(m)) 
-                         + "' lacks a default intializer.",
-                "All scalar fields within a config struct and its descendent members require default initializers."
-            );
-
-        }
-        if constexpr (std::meta::is_const(type_of(m)) || std::meta::is_reference_type(type_of(m))){
-            static_assert(false,
-                "\nERROR: Field'" + std::string(display_string_of(dealias(remove_cvref(^^T)))) + "::"+ std::string(identifier_of(m)) 
-                + "' has an invalid type: -> " + std::string(display_string_of(type_of(m))) 
-                + " <- \n"
-                "Config fields may not be const or reference qualified, as they must trivially modifiable.\n"
-            );
-
-        }
-
-        template for (constexpr auto anno: annotations_array<m>()){
-            static_assert(type_accepts_annotation<Mt, anno>());
-        }
-            
+        auto v = obj.[:m:];
         constexpr auto range_anno = try_get_range(m);
         if constexpr(range_anno){
-            constexpr auto r = *range_anno;
-            constexpr auto t = dealias(remove_cvref(type_of(m)));
-
-            static_assert(satisfies_concept(^^is_numeric, t), 
-                "Range annotation is only valid for numeric types"); // for the time being. This will need to be changed if i implement it for vector types or for arrays
-            if (!(r.min <= v && v <= r.max)){
-                throw std::logic_error(
-                    "ERROR: default value for '" + cur_path + "' ("+ tostr(static_cast<i32>(v)) +") is outside of its Range annotation"
-                    "-> ["+ tostr(static_cast<i32>(r.min)) +", "+ tostr(static_cast<i32>(r.max))+"]."
-                );
+            constexpr auto range_raw = *try_get_raw_annotation_of<cfg::Range>(m);
+            if constexpr(type_accepts_annotation<Mt, range_raw>()){
+                auto r = *range_anno;
+                if (!(r.min <= v && v <= r.max)){
+                    throw std::logic_error(
+                        "ERROR: default value for '" + std::string(identifier_of(m))+ "' ("+ ansi::tostr(static_cast<i32>(v)) +") is outside of its Range annotation"
+                        "-> ["+ ansi::tostr(static_cast<i32>(r.min)) +", "+ ansi::tostr(static_cast<i32>(r.max))+"]."
+                    );
+                    return false;
+                }
             }
         }
-
+        is_declaration_valid<T,m>(obj);
         if constexpr(cfg::meta::is_struct_like(remove_cvref(type_of(m)))){
             static_validate_rec<decltype(v)>(v, cur_path);
+        }
+        if constexpr (cfg::meta::is_array_type(remove_cvref(type_of(m)))){
+            static_validate_rec<typename Mt::value_type>(v[0], cur_path + "[0]");
         }
     }
     return true;
@@ -139,10 +156,7 @@ consteval inline auto static_validate_root_cfg() -> bool{
     return static_validate_rec<C>(C{}, std::string(std::meta::identifier_of(^^C)));
 }
 template<typename T>
-constexpr inline bool valid_config_struct_v = static_validate_root_cfg<T>();
-
-template<typename T>
-concept is_valid_root_config = valid_config_struct_v<T>;
+concept is_valid_root_config = static_validate_root_cfg<T>();
 
 template<typename T>
 inline auto validate_recursive(T const& obj, std::string path) -> bool{
@@ -154,22 +168,28 @@ inline auto validate_recursive(T const& obj, std::string path) -> bool{
         auto cur_path = path + std::string(".") + identifier_of(m);
         constexpr auto range_anno = try_get_range(m);
         if constexpr(range_anno){
-            auto r = *range_anno;
-            bool lt_range =  val < r.min;
-            bool gt_range =  val > r.max;
-            if (lt_range || gt_range){
-                LOG_WARN(
-                    "Field '{}' contains value ({}) outside of range [{},{}] ({})",
-                    cur_path, val, r.min, r.max,
-                    lt_range 
-                    ? std::format("{} < {}",val,r.min)
-                    : std::format("{} > {}",val,r.max)
-                );
-                return false;
+            constexpr auto range_raw = *try_get_raw_annotation_of<cfg::Range>(m);
+            if constexpr(type_accepts_annotation<Ft, range_raw>()){
+                auto r = *range_anno;
+                bool lt_range =  val < r.min;
+                bool gt_range =  val > r.max;
+                if (lt_range || gt_range){
+                    LOG_WARN(
+                        "Field '{}' contains value ({}) outside of range [{},{}] ({})",
+                        cur_path, val, r.min, r.max,
+                        lt_range 
+                        ? std::format("{} < {}",val,r.min)
+                        : std::format("{} > {}",val,r.max)
+                    );
+                    return false;
+                }
             }
         }
         if constexpr(cfg::concepts::is_struct_like<Ft>){
             validate_recursive<Ft>(val, cur_path);
+        }
+        if constexpr (cfg::concepts::is_array_type<Ft>){
+            validate_recursive<typename Ft::value_type>(val[0], cur_path + "[0]");
         }
     }
     return true;

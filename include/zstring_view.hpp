@@ -1,6 +1,7 @@
 #pragma once 
 #include "span_wrapper.hpp"
 #include <string>
+#include <ranges>
 
 struct zstring_view{
     // NOTE: No std::string_view ctor on purpose.
@@ -12,6 +13,7 @@ struct zstring_view{
     constexpr zstring_view(std::string const& str ): m_span(str.c_str(),str.length()) {}
     constexpr explicit operator std::string_view() const {return std::string_view{m_span};}
 
+    constexpr auto clone () const -> std::string{return std::string(std::from_range, m_span);}
     constexpr auto cstr() const -> const char*{return m_span.data();}
     constexpr auto empty() const -> bool {return m_span.empty();}
     constexpr auto size() const -> bool {return m_span.size();}
