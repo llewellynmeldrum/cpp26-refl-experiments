@@ -1,0 +1,6 @@
+# The Makefile symlinks build/<toolchain>-<preset>/compile_commands.json to the repo root.
+Diagnostics:
+  UnusedIncludes: None
+CompileFlags:
+  Remove: [-freflection, -Wfatal-errors]
+  Add: [-DCLANGD_PARSE=1]

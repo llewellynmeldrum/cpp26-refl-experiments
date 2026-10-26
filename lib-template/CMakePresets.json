@@ -1,0 +1,50 @@
+{
+  "version": 10,
+  "$comment": "Build types. The Makefile picks the toolchain (TC=...) and the build dir (build/<TC>-<preset>). Running `cmake --preset X` directly uses the default compiler and build/<preset>.",
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "$comment": "Abstract class if you will",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "warnings": { "deprecated": false },
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_OSX_ARCHITECTURES": "arm64",
+        "_TIME_REPORT": "OFF",
+        "_MAX_ERRORS": "0"
+      }
+    },
+    { "name": "dev",   "inherits": "base", "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "_O1": "ON"
+    }},
+
+    { "name": "cfast", "inherits": "dev",  "cacheVariables": {
+        "_O2": "ON"
+    }},
+
+    { "name": "fast",  "inherits": "base", "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "_O3": "ON",
+        "_FAST_MATH": "ON"
+    }},
+
+    { "name": "asan",  "inherits": "dev",  "cacheVariables": {
+        "_ENABLE_ASAN": "ON"
+    }},
+
+    { "name": "ausan", "inherits": "asan", "cacheVariables": {
+        "_ENABLE_UBSAN": "ON"
+    }},
+
+    { "name": "release", "inherits": "base",
+      "$comment": "What `make install` builds. Plain -O3 via CMAKE_BUILD_TYPE, no sanitizers, no fast-math, tests and examples off.",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "mylib_BUILD_TESTS": "OFF",
+        "mylib_BUILD_EXAMPLES": "OFF"
+    }}
+  ]
+}

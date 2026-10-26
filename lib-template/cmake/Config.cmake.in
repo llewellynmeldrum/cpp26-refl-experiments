@@ -1,0 +1,9 @@
+@PACKAGE_INIT@
+
+# Every find_package() in CMakeLists.txt whose target is linked PUBLIC/INTERFACE
+# needs a matching find_dependency() here, so consumers get it transitively.
+include(CMakeFindDependencyMacro)
+# find_dependency(toml11 4)
+
+include("${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@Targets.cmake")
+check_required_components(@PROJECT_NAME@)
