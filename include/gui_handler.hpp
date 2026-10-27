@@ -4,6 +4,8 @@
 #include <numeric>
 #include <optional>
 
+#include <libassert/assert.hpp>
+#include "libassert_wrapper.hpp"
 #include "common.hpp"
 #include "imgui_wrapper.hpp"
 #include "cfg_traits.hpp"
@@ -36,7 +38,7 @@ template<typename T>
     requires concepts::is_string_type<T>
 auto edit_leaf(T& v, FieldInfo info) -> bool{
     auto label = info.get_label();
-    ASSERT(!info.has_range(), "Strings do not support ranges atm. Consider implementing to constrain string length min and max?",v,std::format("{}",info));
+    ASSERT_IF_NOT_CLANG(!info.has_range(), "Strings do not support ranges atm. Consider implementing to constrain string length min and max?",v,std::format("{}",info));
     bool changed = ui::InputString(zstring_view(label), v, info.tooltip());
     return changed;
 }
@@ -70,16 +72,15 @@ auto edit_array_like(T& arr, FieldInfo info) -> bool{
     ui::Label(array_name, info.tooltip());
     if constexpr(concepts::is_scalar_type<elem_t>){
         // arrays of scalars -> simple table
-        auto table = ui::Table{}
+        auto spec = ui::TableSpec{}
             .set_name(array_name)
             .set_flags(ui::TableFlagBits::eBorders | ui::TableFlagBits::eRowBg)
             .set_column_headers({
                 {"index", ui::TableColumnFlagBits::eWidthFixed},
                 {"value", ui::TableColumnFlagBits::eWidthStretch},
             });
-        table.begin();
 
-        if (table.is_shown()){
+        if (auto table = spec.begin()){
             auto idx = 0uz;
             for (auto& v: arr){
                 table.next_row()
@@ -93,11 +94,11 @@ auto edit_array_like(T& arr, FieldInfo info) -> bool{
             }
         }
     }else{
-        auto table = ui::Table{}
+        auto spec = ui::TableSpec{}
             .set_name(array_name)
             .set_flags(ui::TableFlagBits::eBorders | ui::TableFlagBits::eRowBg)
-        ;
-        table.add_column_header("index", ui::TableColumnFlagBits::eWidthFixed);
+            .add_column_header("index", ui::TableColumnFlagBits::eWidthFixed);
+
         template for (constexpr auto m : nonstatic_members_array<elem_t>()){
             auto member_name = std::string(identifier_of(m));
             auto info = make_field_info<m>();
@@ -105,12 +106,11 @@ auto edit_array_like(T& arr, FieldInfo info) -> bool{
             if (info.note){
                 hint = info.note.value();
             }
-            table.add_column_header(member_name, ui::TableColumnFlagBits::eWidthStretch,std::string(hint));
+            spec.add_column_header(member_name, ui::TableColumnFlagBits::eWidthStretch,std::string(hint));
             // add a hint here with the info?
         }
-        table.begin();
 
-        if (table.is_shown()){
+        if (auto table = spec.begin()){
             auto idx = 0uz;
             for (auto& element: arr){
                 // each element is a row

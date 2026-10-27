@@ -47,7 +47,7 @@ struct AUTO_FORMAT FieldInfo{
     }
     constexpr auto get_label() -> std::string{
         if (index){
-            return std::format("##{}[{}]", name.value_or(""sv),*index );
+            return std::format("##{}[{}]", name.value_or(""sv), *index );
         }else{
             return std::format("{}", name.value_or(""sv) );
         }
@@ -69,3 +69,4 @@ consteval auto make_field_info(bool is_root=false) -> FieldInfo{
     };
 }
 #endif // CPP26
+static_assert(std::optional<std::string_view>{} == std::nullopt);

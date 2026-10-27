@@ -4,13 +4,18 @@
 #include <string>
 #include <vector>
 #include <cstddef>
-#include "bitmask_flags.hpp"
+#include <utility>
+
 #include "logger.hpp"
+#include "cppslop.hpp"
+#include "bitmask_flags.hpp"
+#include "zstring_view.hpp"
+#include "lmgui_common.hpp"
 
-#include "lmgui_general.hpp"
 
+#if CPP26
 namespace ui{
-enum struct TableFlagBits: u32 {
+ENUM_WITH_BITWISE TableFlagBits: u32 {
     // Features
     eNone                       = 0,
     eResizable                  = 1 << 0,   // Enable resizing columns.
@@ -60,7 +65,7 @@ enum struct TableFlagBits: u32 {
 using TableFlags = Flags<TableFlagBits>;
 
 // Flags for ImGui::TableSetupColumn()
-enum struct TableColumnFlagBits {
+ENUM_WITH_BITWISE TableColumnFlagBits {
     // Input configuration flags
     eNone                  = 0,
     eDisabled              = 1 << 0,   // Overriding/master disable flag: hide column, won't show in context menu (unlike calling TableSetColumnEnabled() which manipulates the user accessible state)
@@ -92,7 +97,7 @@ enum struct TableColumnFlagBits {
 using TableColumnFlags = Flags<TableColumnFlagBits>;
 
 // Flags for ImGui::TableNextRow()
-enum  struct TableRowFlagBits{
+ENUM_WITH_BITWISE TableRowFlagBits{
     eNone                     = 0,
     eHeaders                  = 1 << 0,   // Identify header row (set default background color + width of its contents accounted differently for auto column width)
 };
@@ -121,84 +126,113 @@ struct TableColumnHeader{
     std::string hint="";
 };
 
-// NOTE: dtor calls table.end();
-struct Table{
-    Table() = default;
-    Table(std::string name, TableFlags flags)
-        :m_name(std::move(name))
-        ,m_flags(flags)
-    {}
-    ~Table(){
-        //LOG_TRACE();
-        if (m_isShown){end();}
+struct TableSpec{
+    std::string name{""};
+    TableFlags flags;
+    bool isVisible = false;
+    std::vector<TableColumnHeader> headers{};
+    
+    auto&& set_name(this auto&& m, std::string_view name){
+        m.name = name;
+        return std::forward<decltype(m)>(m);
     }
+    auto&& set_flags(this auto&& m, TableFlags flags){
+        m.flags = flags;
+        return std::forward<decltype(m)>(m);
+    }
+    auto&& set_column_headers(this auto&& m, std::vector<TableColumnHeader> headers) {
+        m.headers.assign_range(headers);
+        return std::forward<decltype(m)>(m);
+    }
+    auto&& add_column_header(this auto&& m, std::string header, TableColumnFlags col_flags = TableColumnFlagBits::eNone, std::string hint=""){
+        m.headers.emplace_back(header,col_flags, hint);
+        return std::forward<decltype(m)>(m);
+    }
+    auto begin();
 
-    auto&& set_name(this auto&& self, std::string_view name){
-        self.m_name = name;
-        return std::forward<decltype(self)>(self);
+};
+struct TableScope{
+    explicit TableScope(TableSpec info);
+    ~TableScope();
+    NO_MOVE_CTOR(TableScope)
+    NO_MOVE_ASSN(TableScope)
+    NO_COPY_CTOR(TableScope)
+    NO_COPY_ASSN(TableScope)
+
+    operator bool(){
+        return isVisible; 
     }
-    auto&& set_flags(this auto&& self, TableFlags flags){
-        self.m_flags = flags;
-        return std::forward<decltype(self)>(self);
-    }
-    auto&& set_column_headers(this auto&& self, std::vector<TableColumnHeader> headers) {
-        self.m_headers.assign_range(headers);
-        return std::forward<decltype(self)>(self);
-    }
-    auto&& add_column_header(this auto&& self, std::string header, TableColumnFlags col_flags = TableColumnFlagBits::eNone, std::string hint=""){
-        self.m_headers.emplace_back(header,col_flags, hint);
-        return std::forward<decltype(self)>(self);
-    }
-    auto begin(this Table&& self)=delete("Begin cannot be called on a temporary/rvalue Table.");
-    auto begin(this Table& self) -> Table& {
-        ASSERT(self.m_headers.size()>0);
-        ASSERT(!self.m_isShown,"Double begin. ");
-        self.m_isShown = ImGui::BeginTable(self.m_name.c_str(), self.m_headers.size(), self.m_flags.raw());
-        for (const auto& col: self.m_headers){
-            ImGui::TableSetupColumn(col.title.c_str(),col.flags.raw());
+    static auto setup_headers(std::span<const TableColumnHeader> headers) ->void;
+
+    auto begin(this auto&& m) -> auto&&{
+        ASSERT(!m.isVisible,"Double begin. ");
+        m.isVisible = ImGui::BeginTable(m.name.c_str(), m.headers.size(), m.flags.raw());
+        if (m.isVisible){
+            setup_headers(m.headers);
         }
-        // we render our own headers since imgui automatic header shit doesnt allow hints
-        for (const auto& col: self.m_headers){
-            ImGui::TableNextColumn();
-            ImGui::Selectable(col.title.c_str(), true, ImGuiSelectableFlags_AllowOverlap);
-            if (col.hint != ""){
-                ui::InlineTooltip(zstring_view{col.hint});
-            }
-        }
-        return self;
+        return std::forward<decltype(m)>(m);
     }
-    auto&& next_row(this auto&& self, TableRowFlags flags = TableRowFlagBits::eNone){
+    auto next_row(this auto&& m, TableRowFlags flags = TableRowFlagBits::eNone) -> auto&&{
         ASSERT(GImGui->CurrentTable != nullptr, "Why is this null");
         ImGui::TableNextRow(flags.raw());
-        return std::forward<decltype(self)>(self);
+        return std::forward<decltype(m)>(m);
     }
-    auto&& next_column(this auto&& self){
+    auto&& next_column(this auto&& m){
         ImGui::TableNextColumn();
-        return std::forward<decltype(self)>(self);
+        return std::forward<decltype(m)>(m);
     }
 
     // alternative lambda based API
     template<typename Fn>
-    auto&& column(this auto&& self,Fn&& in_column){
+    auto&& column(this auto&& m,Fn&& in_column){
         if (ImGui::TableNextColumn()){
             std::invoke(std::forward<Fn>(in_column));
         }
-        return std::forward<decltype(self)>(self);
+        return std::forward<decltype(m)>(m);
     }
-    auto is_shown(this auto&& self) -> bool{
-        return self.m_isShown; 
+    auto is_shown(this auto&& m) -> bool{
+        return m.isVisible; 
     }
     auto end() -> void{
-        m_isShown = false; 
+        isVisible = false; 
         ImGui::EndTable();
     }
-    std::string m_name{""};
-    TableFlags m_flags;
-    bool m_isShown = false;
-    std::vector<TableColumnHeader> m_headers;
+
+    std::string name{""};
+    TableFlags flags;
+    bool isVisible = false;
+    std::vector<TableColumnHeader> headers{};
 };
+inline auto TableSpec::begin(){
+    return TableScope(*this);
 }
-// NOTE: This is why annotations are superior. We need to escape the namespace 
-ENABLE_ENUM_BITWISE(ui::TableRowFlagBits);
-ENABLE_ENUM_BITWISE(ui::TableColumnFlagBits);
-ENABLE_ENUM_BITWISE(ui::TableFlagBits);
+inline auto TableScope::setup_headers(std::span<const TableColumnHeader> headers) -> void {
+    for (const auto &column : headers) {
+        ImGui::TableSetupColumn(column.title.c_str(), column.flags.raw());
+    }
+    // we render our own headers since imgui automatic header shit doesnt allow
+    // hints
+    for (const auto &column : headers) {
+        ImGui::TableNextColumn();
+        ImGui::Selectable(column.title.c_str(), true,
+                          ImGuiSelectableFlags_AllowOverlap);
+        if (column.hint != "") {
+            ui::InlineTooltip(zstring_view{column.hint});
+        }
+    }
+}
+inline TableScope::TableScope(TableSpec info)
+    : name(info.name)
+    , flags(info.flags)
+    , isVisible(info.isVisible)
+    , headers(info.headers)
+{
+    begin();
+}
+inline TableScope::~TableScope() {
+    if (isVisible) {
+        end();
+    }
+}
+}
+#endif

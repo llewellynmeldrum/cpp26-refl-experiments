@@ -7,10 +7,19 @@
 #include <deque>
 #include <ranges>
 
-using ssize_t = std::ptrdiff_t;
-#define BUILDER_INTERFACE(FIELD) auto set##FIELD(auto in) -> decltype(auto){this->FIELD = in; return *this;}
+
+// SECTION: macros
+// imo lowercase delete is easy to miss among `default`
+#define DELETE delete
+#define NO_COPY_CTOR(T )    T(const T &) = DELETE;
+#define NO_COPY_ASSN(T )    T& operator=(const T &) = DELETE;
+#define NO_MOVE_CTOR(T )    T(T &&) = DELETE;
+#define NO_MOVE_ASSN(T )    T& operator=(T &&) = DELETE;
 #define st_cast static_cast
 #define NOP ((void)0)
+
+using ssize_t = std::ptrdiff_t;
+#define BUILDER_INTERFACE(FIELD) auto set##FIELD(auto in) -> decltype(auto){this->FIELD = in; return *this;}
 // The ctor that never was
 template<typename T, typename Container=std::deque<T>>
 constexpr inline auto init_stack(std::initializer_list<T> in){
