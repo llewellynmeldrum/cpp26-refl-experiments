@@ -76,22 +76,17 @@ auto Gui::framebuffer_scale_y() -> f32{
 #if CPP26
 
 auto Gui::edit_configs() -> void{
+    ImGui::ShowDemoWindow();
     auto& e = Engine::get();
-    using T = Config;
-//    if (!cfg::is_declaration_valid<Enemy,^^Enemy::name>({})){
-//        ASSERT(false, "bruh");
-//    }
-//    cfg::static_validate_root_cfg<T>();
-
-    auto res = cfg::edit_config_window(e.config_storage);
-    if (res.reset_to_default){
+    auto action_is = cfg::edit_config_window(e.config_storage);
+    if (action_is.reset_to_default){
         e.config_storage.live = {};
-    }else if (res.save_to_disk){
+    }else if (action_is.save_to_disk){
         cfg::save_to_disk(e.config_storage);
-    }else if (res.load_from_disk){
+    }else if (action_is.load_from_disk){
         cfg::load_from_disk(e.config_storage);
     }
-    if (res.edited){
+    if (action_is.edited){
         LOG_DBG("config edited"sv);
     }
 }

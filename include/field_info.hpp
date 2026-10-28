@@ -33,6 +33,13 @@ struct AUTO_FORMAT FieldInfo{
             return std::nullopt;
         }
     }
+    constexpr auto name_zstring()->std::optional<zstring_view>{
+        if (name){
+            return zstring_view(name->data(), name->size());
+        }else{
+            return std::nullopt;
+        }
+    }
     constexpr auto has_name()->bool    {return name.has_value();}
     constexpr auto has_range()->bool    {return range.has_value();}
     constexpr auto has_note()->bool     {return note.has_value();}

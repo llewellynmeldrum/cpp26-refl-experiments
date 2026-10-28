@@ -10,7 +10,7 @@
 #include "primitive_types.hpp"
 
 struct Window{
-    Window(std::string a_name);
+    Window(std::string a_name, glm::ivec2 window_logical_extent);
     ~Window();
     Gui ui;
     auto show() ->void;
@@ -21,6 +21,7 @@ struct Window{
     bool shouldClose{false};
 
     std::string m_window_name;
+    glm::ivec2 m_window_logical_extent;
     f32 m_main_scale;
     SDL_WindowFlags m_window_flags;
     SDL_Window* m_window;

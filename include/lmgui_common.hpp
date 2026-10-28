@@ -1,5 +1,6 @@
 #pragma once 
 #include "lmgui_includes.hpp"
+#include "lmgui_macros.hpp"
 #include "lmgui_utils.hpp"
 namespace ui{
 [[nodiscard]] inline  auto ItemSpacing() -> glm::vec2 { return ig::GetStyle().ItemSpacing;}
@@ -40,5 +41,12 @@ inline auto HintPrevious(zstring_view desc) -> void {
         ig::EndTooltip();
     }
     ig::NewLine();
+}
+inline auto Label(
+    std::string_view label,
+    std::optional<std::string_view> tooltip=std::nullopt
+) -> void{
+    ig::TextUnformatted(std::string(label).c_str());
+    if (tooltip) ui::InlineTooltip(*tooltip);
 }
 } // namespace ui

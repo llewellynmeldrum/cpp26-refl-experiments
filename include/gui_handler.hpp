@@ -10,15 +10,17 @@
 #include "imgui_wrapper.hpp"
 #include "cfg_traits.hpp"
 #include "field_info.hpp"
-#include "lmgui_tables.hpp"
 #include "stable_type_name.hpp"
 #include "cppslop.hpp"
 #include "cfg_helpers.hpp"
 #include "cfg_metadata.hpp"
+#include "cfg_toml_rw.hpp"
 #include "toml_traits.hpp"
 #include "meta_helpers.hpp"
-#include "cfg_toml_rw.hpp"
 #include "auto_format.hpp"
+
+#include "lmgui_tables.hpp"
+#include "lmgui_windows.hpp"
 
 namespace cfg{
 
@@ -76,11 +78,11 @@ auto edit_array_like(T& arr, FieldInfo info) -> bool{
             .set_name(array_name)
             .set_flags(ui::TableFlagBits::eBorders | ui::TableFlagBits::eRowBg)
             .set_column_headers({
-                {"index", ui::TableColumnFlagBits::eWidthFixed},
+                {"idx", ui::TableColumnFlagBits::eWidthFixed},
                 {"value", ui::TableColumnFlagBits::eWidthStretch},
             });
 
-        if (auto table = spec.begin()){
+        if (auto table = ui::begin_scope(spec)){
             auto idx = 0uz;
             for (auto& v: arr){
                 table.next_row()
@@ -97,7 +99,7 @@ auto edit_array_like(T& arr, FieldInfo info) -> bool{
         auto spec = ui::TableSpec{}
             .set_name(array_name)
             .set_flags(ui::TableFlagBits::eBorders | ui::TableFlagBits::eRowBg)
-            .add_column_header("index", ui::TableColumnFlagBits::eWidthFixed);
+            .add_column_header("idx", ui::TableColumnFlagBits::eWidthFixed);
 
         template for (constexpr auto m : nonstatic_members_array<elem_t>()){
             auto member_name = std::string(identifier_of(m));
@@ -110,7 +112,7 @@ auto edit_array_like(T& arr, FieldInfo info) -> bool{
             // add a hint here with the info?
         }
 
-        if (auto table = spec.begin()){
+        if (auto table = ui::begin_scope(spec)){
             auto idx = 0uz;
             for (auto& element: arr){
                 // each element is a row
@@ -138,23 +140,28 @@ auto edit_struct_like(T& val, FieldInfo struct_info) -> bool{
     auto name = struct_info.name.value_or("no struct name???"sv);
     bool edited = false;
     bool open = false;
-    if (!struct_info.is_root){
-        open = ui::BeginTreeNode(std::string(name));
+    if (struct_info.is_root){
+        open = ImGui::BeginTable(std::string(name).c_str(),2,ImGuiTableFlags_Borders);
         if (!open){ return false; } // exit early, dont iterate anything
     }
-    template for (constexpr auto m: nonstatic_members_array<T>()){
-        using Mt = [:dealias(remove_cvref(type_of(m))):];
-        auto info = make_field_info<m>();
-        if constexpr (concepts::is_scalar_type<Mt>){
-            edited |= edit_leaf(val.[:m:], info);
-        }else if constexpr (concepts::is_array_type<Mt>){
-            edited |= edit_array_like(val.[:m:], info);
-        }else if constexpr (concepts::is_struct_like<Mt>){
-            edited |= edit_struct_like(val.[:m:], info);
+    auto spec = ui::PropertyGridSpec{}
+        .set_id(name);
+    if (auto grid = ui::begin_scope(spec)){
+        template for (constexpr auto m: nonstatic_members_array<T>()){
+            using Mt = [:dealias(remove_cvref(type_of(m))):];
+            auto info = make_field_info<m>();
+            if constexpr (concepts::is_scalar_type<Mt>){
+                grid.scalar_row(info.name_zstring(), info.note_zstring(), [&]{ edited |= edit_leaf(val.[:m:], info);});
+            }else if constexpr (concepts::is_array_type<Mt>){
+//                edited |= edit_array_like(val.[:m:], info);
+            }else if constexpr (concepts::is_struct_like<Mt>){
+                grid.struct_row(info.name_zstring(), info.note_zstring(), [&]{ edited |= edit_struct_like(val.[:m:], info);});
+ //               edited |= edit_struct_like(val.[:m:], info);
+            }
         }
     }
-    if (!struct_info.is_root){
-        ui::EndTreeNode();
+    if (struct_info.is_root){
+        ImGui::EndTable();
     }
     return edited;
 }
@@ -170,47 +177,48 @@ auto edit_config_window(Storage<T> & storage) -> ConfigActions{
     auto reg = cfg::get_registration<T>();
     auto const main_window_size = ui::ViewportSize() / 2.0f;
     auto const footer_height = ui::ElementHeight();
-    auto const content_height = ui::AvaliableRegion().y - footer_height - ui::ItemSpacing().y;
+    auto res = ConfigActions{};
 
-    auto main_window = ui::raii::Window(reg.config_name, {
-        .size= main_window_size,
-    });
-    auto & root = storage.live;
-    bool edited = false;
-    ig::ShowMetricsWindow();
-    if (auto w = ui::raii::ChildWindow("SrollingBody",{0, content_height}); w){
-        auto info = make_field_info<^^T>(true);
-        edit_struct_like(root,info);
-    }
-    bool save_to_disk{}, load_from_disk{}, reset_to_default{};
-    {
-        ig::Separator();
-        auto footer = ui::raii::ChildWindow("##",{0,footer_height});
-        save_to_disk = ui::Button(
-            "Save to file",
-            std::format("Saves the current live config state to '{}'.",storage.filename)
-        );
-        ui::SameLine();
-
-        load_from_disk = ui::Button(
-            "Load from file", 
-            std::format("Loads the config state from '{}'.",storage.filename)
-        );
-        ui::SameLine();
-
-        reset_to_default = ui::Button(
-            "Reset to defaults",
-            "Resets all fields to defaults, according to their initializers."
-        );
-        ui::SameLine();
-    }
-
-    return {
-        .edited           = edited,
-        .save_to_disk     = save_to_disk,
-        .load_from_disk   = load_from_disk,
-        .reset_to_default = reset_to_default,
+    auto const main_window_pos = glm::vec2{
+        ui::ViewportSize().x - main_window_size.x,
+        0.0f,
     };
+    auto window_spec = ui::WindowSpec{}
+        .set_size(main_window_size)
+        .set_pos(main_window_pos)
+        .set_name(reg.config_name);
+
+    if (auto window = ui::begin_scope(window_spec)){
+        auto & root = storage.live;
+        res.edited = false;
+        ig::ShowMetricsWindow();
+        auto child_spec = ui::ChildWindowSpec{}
+            .set_name("Srolling Body")
+            .set_size({0,-footer_height})
+        ;
+        if (auto child = ui::begin_scope(child_spec)){
+            edit_struct_like(root,make_field_info<^^T>(true));
+        }
+        if (auto child = ui::begin_scope(child_spec)){
+            ig::Separator();
+            auto footer = ui::raii::ChildWindow("##",{0,footer_height});
+            res.save_to_disk = ui::Button( "Save to file",
+                std::format("Saves the current live config state to '{}'.",storage.filename)
+            );
+            ui::SameLine();
+
+            res.load_from_disk = ui::Button( "Load from file", 
+                std::format("Loads the config state from '{}'.",storage.filename)
+            );
+            ui::SameLine();
+
+            res.reset_to_default = ui::Button( "Reset to defaults",
+                "Resets all fields to defaults, according to their initializers."
+            );
+            ui::SameLine();
+        }
+    }
+    return res;
 }
 
 } // NOTE: namespace cfg

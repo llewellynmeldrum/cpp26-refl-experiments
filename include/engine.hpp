@@ -20,6 +20,6 @@ struct Engine{
     cfg::Storage<Config> config_storage{.filename = "cfg.toml"sv};
 
 private:
-    Engine() : window ("Test window") {}
+    Engine() : window ("Test window", glm::ivec2{1600,900}) {}
     ~Engine()=default;
 };

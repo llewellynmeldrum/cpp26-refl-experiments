@@ -1,41 +1,42 @@
 #include "window.hpp"
 #include <imgui.h>
+#include <libassert/assert.hpp>
 
 auto Window::close() -> void{
     shouldClose = true;
 }
-Window::Window(std::string a_name)
+Window::Window(std::string a_name, glm::ivec2 window_logical_extent)
     :m_window_name(a_name)
+    ,m_window_logical_extent(window_logical_extent)
 {
-    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD))
-    {
-        throw std::runtime_error(
-            std::format( "Unable to init SDL ({}() failed): {} ",
-                "SDL_Init", SDL_GetError()
-            )
-        );
-    }
+
+    ASSERT(
+        SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD), 
+        std::format( "Unable to init SDL ({}() failed): {} ", "SDL_Init", SDL_GetError())
+    );
 
     // Create window with SDL_Renderer graphics context
     m_main_scale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
     m_window_flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN | SDL_WINDOW_HIGH_PIXEL_DENSITY;
-    m_window = SDL_CreateWindow(m_window_name.c_str(), (int)(1280 * m_main_scale), (int)(800 * m_main_scale), m_window_flags);
-    if (!m_window) {
-        throw std::runtime_error(
-            std::format( "Unable to init SDL ({}() failed): {} ",
-                "SDL_CreateWindow", SDL_GetError()
-            )
-        );
-    }
+    auto window_pixel_extent = glm::ivec2{glm::vec2{window_logical_extent} * m_main_scale};
+    m_window = SDL_CreateWindow(
+        m_window_name.c_str(),
+        window_pixel_extent.x,
+        window_pixel_extent.y,
+        m_window_flags
+    );
+
+    ASSERT(
+        m_window,
+        std::format( "Unable to init SDL ({}() failed): {} ", "SDL_CreateWindow", SDL_GetError())
+    );
+
     m_renderer = SDL_CreateRenderer(m_window, nullptr);
     //SDL_SetRenderVSync(renderer, 1);
-    if (m_renderer == nullptr) {
-        throw std::runtime_error(
-            std::format( "Unable to init SDL ({}() failed): {} ",
-                "SDL_CreateRenderer", SDL_GetError()
-            )
-        );
-    }
+    ASSERT(
+        m_renderer,
+        std::format( "Unable to init SDL ({}() failed): {} ", "SDL_CreateRenderer", SDL_GetError())
+    );
     SDL_SetWindowPosition(m_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 
     ui.init(m_renderer,m_window,m_main_scale);

@@ -75,6 +75,7 @@ struct AUTO_FORMAT NoiseCfg{
 
 struct AUTO_FORMAT CFG_REGISTER_ROOT_CONFIG("Example Config", "Contains a few odd fields.")
 Config {
+    CFG_NOTE("This is a hint")
     std::string str{"random kid:"};
     Player player;
     CFG_NOTE("Noise configuration")

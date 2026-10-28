@@ -89,13 +89,6 @@ inline auto InputString(
     if (tooltip) ui::InlineTooltip(*tooltip);
     return changed;
 }
-inline auto Label(
-    std::string_view label,
-    std::optional<std::string_view> tooltip=std::nullopt
-) -> void{
-    ig::TextUnformatted(std::string(label).c_str());
-    if (tooltip) ui::InlineTooltip(*tooltip);
-}
 template<typename ...Args>
 inline auto LabelF(
     std::format_string<Args...> fmt, 
@@ -186,7 +179,6 @@ inline auto EnumDropdown(
     if (changed){
         v = values_list[selected_idx];
     }
-    // TODO: how to handle hints? Can we show a hint for the choice + the whole enum itself? How is that supposed to work?
     auto const* item_hint = hint_list[selected_idx];
     if(item_hint) HintPrevious(item_hint);
     if (list_hint) InlineTooltip(*list_hint);

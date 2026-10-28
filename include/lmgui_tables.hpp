@@ -2,10 +2,12 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <string>
+#include <optional>
 #include <vector>
 #include <cstddef>
 #include <utility>
 
+#include "lmgui_macros.hpp"
 #include "logger.hpp"
 #include "cppslop.hpp"
 #include "bitmask_flags.hpp"
@@ -103,23 +105,6 @@ ENUM_WITH_BITWISE TableRowFlagBits{
 };
 using TableRowFlags = Flags<TableRowFlagBits>;
 
-// Enum for ImGui::TableSetBgColor()
-// Background colors are rendering in 3 layers:
-//  - Layer 0: draw with RowBg0 color if set, otherwise draw with ColumnBg0 if set.
-//  - Layer 1: draw with RowBg1 color if set, otherwise draw with ColumnBg1 if set.
-//  - Layer 2: draw with CellBg color if set.
-// The purpose of the two row/columns layers is to let you decide if a background color change should override or blend with the existing color.
-// When using RowBg on the table, each row has the RowBg0 color automatically set for odd/even rows.
-// If you set the color of RowBg0 target, your color will override the existing RowBg0 color.
-// If you set the color of RowBg1 or ColumnBg1 target, your color will blend over the RowBg0 color.
-enum ImGuiTableBgTarget_
-{
-    ImGuiTableBgTarget_None                     = 0,
-    ImGuiTableBgTarget_RowBg0                   = 1,        // Set row background color 0 (generally used for background, automatically set when RowBg is used)
-    ImGuiTableBgTarget_RowBg1                   = 2,        // Set row background color 1 (generally used for selection marking)
-    ImGuiTableBgTarget_CellBg                   = 3,        // Set cell background color (top-most color)
-};
-
 struct TableColumnHeader{
     std::string title;
     TableColumnFlags flags = TableColumnFlagBits::eNone;
@@ -129,17 +114,10 @@ struct TableColumnHeader{
 struct TableSpec{
     std::string name{""};
     TableFlags flags;
-    bool isVisible = false;
     std::vector<TableColumnHeader> headers{};
     
-    auto&& set_name(this auto&& m, std::string_view name){
-        m.name = name;
-        return std::forward<decltype(m)>(m);
-    }
-    auto&& set_flags(this auto&& m, TableFlags flags){
-        m.flags = flags;
-        return std::forward<decltype(m)>(m);
-    }
+    SPEC_BUILDER_SET(std::string_view, name);
+    SPEC_BUILDER_SET(TableFlags, flags);
     auto&& set_column_headers(this auto&& m, std::vector<TableColumnHeader> headers) {
         m.headers.assign_range(headers);
         return std::forward<decltype(m)>(m);
@@ -152,26 +130,30 @@ struct TableSpec{
 
 };
 struct TableScope{
-    explicit TableScope(TableSpec info);
-    ~TableScope();
+    explicit TableScope(TableSpec info)
+        : name(info.name)
+        , flags(info.flags)
+        , headers(info.headers)
+    {
+        isVisible = ImGui::BeginTable(name.c_str(), headers.size(), flags.raw());
+        if (isVisible){
+            setup_headers(headers);
+        }
+    }
+    ~TableScope(){
+        if (isVisible){
+            isVisible = false; 
+            ImGui::EndTable();
+        }
+    }
     NO_MOVE_CTOR(TableScope)
     NO_MOVE_ASSN(TableScope)
     NO_COPY_CTOR(TableScope)
     NO_COPY_ASSN(TableScope)
 
-    operator bool(){
-        return isVisible; 
-    }
-    static auto setup_headers(std::span<const TableColumnHeader> headers) ->void;
+    operator bool(){ return isVisible; }
 
-    auto begin(this auto&& m) -> auto&&{
-        ASSERT(!m.isVisible,"Double begin. ");
-        m.isVisible = ImGui::BeginTable(m.name.c_str(), m.headers.size(), m.flags.raw());
-        if (m.isVisible){
-            setup_headers(m.headers);
-        }
-        return std::forward<decltype(m)>(m);
-    }
+    static auto setup_headers(std::span<const TableColumnHeader> headers) ->void;
     auto next_row(this auto&& m, TableRowFlags flags = TableRowFlagBits::eNone) -> auto&&{
         ASSERT(GImGui->CurrentTable != nullptr, "Why is this null");
         ImGui::TableNextRow(flags.raw());
@@ -190,22 +172,12 @@ struct TableScope{
         }
         return std::forward<decltype(m)>(m);
     }
-    auto is_shown(this auto&& m) -> bool{
-        return m.isVisible; 
-    }
-    auto end() -> void{
-        isVisible = false; 
-        ImGui::EndTable();
-    }
 
     std::string name{""};
     TableFlags flags;
     bool isVisible = false;
     std::vector<TableColumnHeader> headers{};
 };
-inline auto TableSpec::begin(){
-    return TableScope(*this);
-}
 inline auto TableScope::setup_headers(std::span<const TableColumnHeader> headers) -> void {
     for (const auto &column : headers) {
         ImGui::TableSetupColumn(column.title.c_str(), column.flags.raw());
@@ -221,18 +193,77 @@ inline auto TableScope::setup_headers(std::span<const TableColumnHeader> headers
         }
     }
 }
-inline TableScope::TableScope(TableSpec info)
-    : name(info.name)
-    , flags(info.flags)
-    , isVisible(info.isVisible)
-    , headers(info.headers)
-{
-    begin();
+inline auto begin_scope(TableSpec const& spec) -> TableScope{
+    return TableScope{spec};
 }
-inline TableScope::~TableScope() {
-    if (isVisible) {
-        end();
+
+//NOTE: tables extension: PropertyGrid - a two columns table with no header row.
+struct PropertyGridSpec{
+    std::string id{""};
+    TableFlags flags{TableFlagBits::eBorders};
+    std::vector<TableColumnHeader> headers{};
+    
+    SPEC_BUILDER_SET(std::string_view, id);
+};
+
+struct PropertyGridScope{
+    explicit PropertyGridScope(PropertyGridSpec info)
+        : id(info.id)
+        ,flags(info.flags)
+    {
+        isVisible = ImGui::BeginTable(id.c_str(), 2, flags.raw());
     }
+    ~PropertyGridScope(){
+        if (isVisible){
+            isVisible = false; 
+            ImGui::EndTable();
+        }
+    }
+    NO_MOVE_CTOR(PropertyGridScope)
+    NO_MOVE_ASSN(PropertyGridScope)
+    NO_COPY_CTOR(PropertyGridScope)
+    NO_COPY_ASSN(PropertyGridScope)
+
+    operator bool(){ return isVisible; }
+
+    template<typename Fn>
+    auto&& scalar_row(this auto&& m, std::optional<zstring_view> name, std::optional<zstring_view> hint, Fn&& rhs_column){
+        auto row_flags = TableRowFlags{};
+        ImGui::TableNextRow(row_flags.raw());
+        if (ImGui::TableSetColumnIndex(0)){
+            ImGui::AlignTextToFramePadding();
+            ImGui::TreeNodeEx(name ? name.value().cstr() : "", ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_Leaf);
+            if (hint) ui::InlineTooltip(*hint);
+        }
+        if (ImGui::TableSetColumnIndex(1)){
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            ImGui::PushID(name ? name.value().cstr() : "");
+            std::invoke(std::forward<Fn>(rhs_column));
+            ImGui::PopID();
+        }
+        return std::forward<decltype(m)>(m);
+    }
+    template<typename Fn>
+    auto&& struct_row(this auto&& m, std::optional<zstring_view> name, std::optional<zstring_view> hint, 
+                      Fn&& rhs_column){
+        auto row_flags = TableRowFlags{};
+        ImGui::TableNextRow(row_flags.raw());
+        if (ImGui::TreeNodeEx(name ? name.value().cstr() : "", ImGuiTreeNodeFlags_SpanAllColumns)){
+            std::invoke(std::forward<Fn>(rhs_column));
+            ImGui::TreePop();
+        }else{
+            ImGui::Text("PREVIEW...");
+        }
+        return std::forward<decltype(m)>(m);
+    }
+
+    std::string id{""};
+    TableFlags flags{};
+    bool isVisible = false;
+};
+inline auto begin_scope(PropertyGridSpec const& spec) -> PropertyGridScope{
+    return PropertyGridScope{spec};
 }
-}
+} // namespace ui
 #endif
+

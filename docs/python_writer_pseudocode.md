@@ -25,7 +25,6 @@ def serialize_scalar_value(field, parent):
     # ...
 
 def serialize_scalar_field(field, parent, field_comment, include_comma):
-    # perform range checks on the field value
     if parent is toml_array: # array elements dont have names
         write("{}, {}\n", serialize_scalar_value(field), field_comment)
         "eg: 1"
