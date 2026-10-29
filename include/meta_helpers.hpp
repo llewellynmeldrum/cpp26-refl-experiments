@@ -1,9 +1,12 @@
 #pragma once 
 
 #include <string_view>
+#include <type_traits>
+#include "concept_helpers.hpp"
 #include "meta_shorthand.hpp"
 #if CPP26
 #include "primitive_types.hpp"
+#include "cppslop.hpp"
 #include "stable_type_name.hpp"
 using namespace std::string_view_literals;
 #define COMPTIME_STR(s) (std::define_static_string(s))
@@ -27,6 +30,11 @@ inline consteval auto is_annotation_of(std::meta::info m) -> bool{
 
 template<typename T>
 inline constexpr auto nonstatic_members_array(){
+    if constexpr (!std::is_class_v<T>){
+        throw std::meta::exception("nonstatic_members_array() : [with T="+std::string(std::meta::display_string_of(^^T))+"] T must be a class type."sv,^^T);
+    }else if constexpr (!std::meta::is_complete_type(^^T)){
+        throw std::meta::exception("nonstatic_members_array() : [with T="+std::string(std::meta::display_string_of(^^T))+"] T must be a complete type."sv,^^T);
+    }
     return std::define_static_array(
         std::meta::nonstatic_data_members_of(
             ^^T, std::meta::access_context::current()
@@ -87,5 +95,15 @@ template<typename T, typename Fn>
 template<typename ...Args>
 inline consteval auto satisfies_concept(meta::info r_concept, Args ...args){
     return meta::extract<bool>(meta::substitute(r_concept, {args...}));
+}
+//NOTE: Meta helpers namespace
+namespace mh{
+    // mh::str(v) == std::string(v)
+    [[nodiscard]] constexpr auto str(std::string_view s) -> std::string{ return std::string(s);}
+    [[nodiscard]] constexpr auto str(char const* s)      -> std::string{ return std::string(s);}
+
+    template<typename ...Strs> requires (std::constructible_from<std::string,Strs> && ...)
+    [[nodiscard]] constexpr auto join_strings(Strs... args) -> std::string{ return (std::string(args) += ...);}
+
 }
 #endif // CPP26

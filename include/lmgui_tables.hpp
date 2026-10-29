@@ -82,7 +82,7 @@ ENUM_WITH_BITWISE TableColumnFlagBits {
     eNoSort                = 1 << 9,   // Disable ability to sort on this field (even if Sortable is set on the table).
     eNoSortAscending       = 1 << 10,  // Disable ability to sort in the ascending direction.
     eNoSortDescending      = 1 << 11,  // Disable ability to sort in the descending direction.
-    eNoHeaderLabel         = 1 << 12,  // TableHeadersRow() will submit an empty label for this column. Convenient for some small columns. Name will still appear in context menu or in angled headers. You may append into this cell by calling TableSetColumnIndex() right after the TableHeadersRow() call.
+    eNoHeaderLabel         = 1 << 12,  // TableHeadersRow() will submit an empty label for this column. Convenient for some small columns. title will still appear in context menu or in angled headers. You may append into this cell by calling TableSetColumnIndex() right after the TableHeadersRow() call.
     eNoHeaderWidth         = 1 << 13,  // Disable header text width contribution to automatic column width.
     ePreferSortAscending   = 1 << 14,  // Make the initial sort direction Ascending when first sorting on this column (default).
     ePreferSortDescending  = 1 << 15,  // Make the initial sort direction Descending when first sorting on this column.
@@ -112,12 +112,12 @@ struct TableColumnHeader{
 };
 
 struct TableSpec{
-    std::string name{""};
+    std::string title{""};
     TableFlags flags;
     std::vector<TableColumnHeader> headers{};
     
-    SPEC_BUILDER_SET(std::string_view, name);
-    SPEC_BUILDER_SET(TableFlags, flags);
+    SPEC_SETTER(std::string_view, title);
+    SPEC_SETTER(TableFlags, flags);
     auto&& set_column_headers(this auto&& m, std::vector<TableColumnHeader> headers) {
         m.headers.assign_range(headers);
         return std::forward<decltype(m)>(m);
@@ -131,11 +131,11 @@ struct TableSpec{
 };
 struct TableScope{
     explicit TableScope(TableSpec info)
-        : name(info.name)
+        : title(info.title)
         , flags(info.flags)
         , headers(info.headers)
     {
-        isVisible = ImGui::BeginTable(name.c_str(), headers.size(), flags.raw());
+        isVisible = ImGui::BeginTable(title.c_str(), headers.size(), flags.raw());
         if (isVisible){
             setup_headers(headers);
         }
@@ -173,7 +173,7 @@ struct TableScope{
         return std::forward<decltype(m)>(m);
     }
 
-    std::string name{""};
+    std::string title{""};
     TableFlags flags;
     bool isVisible = false;
     std::vector<TableColumnHeader> headers{};
@@ -200,10 +200,11 @@ inline auto begin_scope(TableSpec const& spec) -> TableScope{
 //NOTE: tables extension: PropertyGrid - a two columns table with no header row.
 struct PropertyGridSpec{
     std::string id{""};
-    TableFlags flags{TableFlagBits::eBorders};
+    TableFlags flags{};
     std::vector<TableColumnHeader> headers{};
     
-    SPEC_BUILDER_SET(std::string_view, id);
+    SPEC_SETTER(TableFlags, flags);
+    SPEC_SETTER(std::string_view, id);
 };
 
 struct PropertyGridScope{
@@ -212,6 +213,10 @@ struct PropertyGridScope{
         ,flags(info.flags)
     {
         isVisible = ImGui::BeginTable(id.c_str(), 2, flags.raw());
+        if (isVisible){
+            ImGui::TableSetupColumn("Field",ImGuiTableColumnFlags_WidthStretch,0.35f);
+            ImGui::TableSetupColumn("Value",ImGuiTableColumnFlags_WidthStretch,0.65f);
+        }
     }
     ~PropertyGridScope(){
         if (isVisible){
@@ -227,34 +232,49 @@ struct PropertyGridScope{
     operator bool(){ return isVisible; }
 
     template<typename Fn>
-    auto&& scalar_row(this auto&& m, std::optional<zstring_view> name, std::optional<zstring_view> hint, Fn&& rhs_column){
+    auto&& scalar_row(this auto&& m, std::optional<zstring_view> opt_title, std::optional<zstring_view> hint, Fn&& rhs_column){
+        // Recall that scalars are leaves and thus cant be closed
+        // Column 0: place the value.
+        auto title = opt_title ? opt_title.value().cstr() : "";
+        m.create_label_cell(title, hint, ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_Leaf);
+
+        // Column 1: place the value. Recall that scalars are leaves and thus cant be closed
+        ImGui::TableSetColumnIndex(1);
+        ImGui::SetNextItemWidth(-FLT_MIN);
+        ImGui::PushID(title);
+            std::invoke(std::forward<Fn>(rhs_column));
+        ImGui::PopID();
+        return std::forward<decltype(m)>(m);
+    }
+    
+
+    // Structs span both columns, and create a collapsable tree node.
+    template<typename Fn>
+    auto&& struct_row(this auto&& m, std::optional<zstring_view> opt_title, std::optional<zstring_view> hint, zstring_view preview, Fn&& children){
         auto row_flags = TableRowFlags{};
         ImGui::TableNextRow(row_flags.raw());
-        if (ImGui::TableSetColumnIndex(0)){
+        auto title = opt_title ? opt_title.value().cstr() : "";
+        // column 0 OR 0,1 (spans both if true)
+        if (m.create_label_cell(title, hint, ImGuiTreeNodeFlags_SpanAllColumns)){
+            // tree is open, recurse to my babies
+            std::invoke(std::forward<Fn>(children));
+            ImGui::TreePop();
+        } else {
+        // column 1
+            ImGui::TableSetColumnIndex(1);
             ImGui::AlignTextToFramePadding();
-            ImGui::TreeNodeEx(name ? name.value().cstr() : "", ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_Leaf);
-            if (hint) ui::InlineTooltip(*hint);
-        }
-        if (ImGui::TableSetColumnIndex(1)){
-            ImGui::SetNextItemWidth(-FLT_MIN);
-            ImGui::PushID(name ? name.value().cstr() : "");
-            std::invoke(std::forward<Fn>(rhs_column));
-            ImGui::PopID();
+            ui::TruncatedPreviewText(preview);
         }
         return std::forward<decltype(m)>(m);
     }
-    template<typename Fn>
-    auto&& struct_row(this auto&& m, std::optional<zstring_view> name, std::optional<zstring_view> hint, 
-                      Fn&& rhs_column){
-        auto row_flags = TableRowFlags{};
-        ImGui::TableNextRow(row_flags.raw());
-        if (ImGui::TreeNodeEx(name ? name.value().cstr() : "", ImGuiTreeNodeFlags_SpanAllColumns)){
-            std::invoke(std::forward<Fn>(rhs_column));
-            ImGui::TreePop();
-        }else{
-            ImGui::Text("PREVIEW...");
-        }
-        return std::forward<decltype(m)>(m);
+
+    auto create_label_cell(zstring_view title, std::optional<zstring_view> hint, ImGuiTreeNodeFlags flags) -> bool{
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::AlignTextToFramePadding();
+        auto const open = ImGui::TreeNodeEx(title.cstr(), flags);
+        if (hint) ui::InlineTooltip(*hint);
+        return open;
     }
 
     std::string id{""};

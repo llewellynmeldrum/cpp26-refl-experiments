@@ -10,6 +10,8 @@
 #include "common.hpp"
 #include "meta_helpers.hpp"
 #include "annotation_helpers.hpp"
+#include "static_styling.hpp"
+//#include "enum_to_string.hpp"
 
 #if !CLANGD_PARSE
 #define AUTO_FORMAT [[=refl::auto_format]]
@@ -18,17 +20,45 @@
 #endif
 
 #if CPP26
+template<typename T> requires is_enum<T>
+struct std::formatter<T>{
+    constexpr auto parse(std::format_parse_context& ctx) {return ctx.begin();}
+
+    constexpr auto format(const T& obj, auto& ctx) const noexcept{
+        std::string  name = "";
+        using namespace std::meta;
+        template for (constexpr auto m: std::define_static_array(enumerators_of(^^T))){
+            if ([:m:] == obj){
+                name = std::meta::identifier_of(m);
+            }
+        }
+        return std::format_to(ctx.out(), "{}",name);
+    }
+};
 namespace refl{
 
 struct auto_format_tag{};
 inline constexpr auto auto_format = auto_format_tag{};
+
+
+consteval bool verify_auto_format_tag(std::meta::info m){
+    if (std::meta::is_enum_type(m)){
+        throw std::meta::exception(
+            "Auto formatter attribute should not be applied to enums! "
+            "They are already formattable by default by virtue of the formatter at the top of this file ("+std::string(__FILE__)+"). "
+            "HINT: Remove the AUTO_FORMATTER attribute from "+std::string(std::meta::display_string_of(m))+"'s declaration."sv
+            , ^^verify_auto_format_tag);
+    }
+    return true;
+}
 template<typename T>
-concept auto_formattable = has_annotation<refl::auto_format_tag>(^^T);
+concept auto_formattable = has_annotation<refl::auto_format_tag>(^^T) && verify_auto_format_tag(^^T);
 
 
 struct auto_formatter{
     struct format_opts{
-        bool subfields_print_types{false};
+        bool newlines_and_indents{false};
+        bool print_types{false};
         bool include_static{false};
     }opts;
 
@@ -39,7 +69,8 @@ struct auto_formatter{
         auto it = ctx.begin();
         while (it != ctx.end() && *it != '}'){
             switch (*it){
-                case 't': opts.subfields_print_types = true; break;
+                case 'n': opts.newlines_and_indents= true; break;
+                case 't': opts.print_types = true; break;
                 case 's': opts.include_static= true; break;
                 default: throw std::format_error("auto_formatter: Unknown option");
             }
@@ -64,9 +95,9 @@ struct auto_formatter{
         size_t indent
     )const noexcept{
         auto res = std::format_to(ctx.out(),"");
-        if (opts.subfields_print_types){
+        if (opts.print_types){
             res = std::format_to(
-                ctx.out(), ".{} : {} = {},",
+                ctx.out(), ".{} : {} = {}, ",
                 identifier,
                 std::meta::display_string_of(^^T),
                 obj
@@ -87,26 +118,31 @@ struct auto_formatter{
         std::string_view identifier,
         auto& ctx,
         format_opts const& opts
-    )noexcept{
-        if (opts.subfields_print_types){
+    ) noexcept{
+        if (opts.print_types){
             return std::format_to(
                 ctx.out(), 
-                "{}{} : {} {{\n",
+                "{}{} : {} {{ {}",
                 identifier=="" ? "" : ".",
                 identifier,
-                std::meta::display_string_of(^^T)
+                std::meta::display_string_of(^^T),
+                opts.newlines_and_indents ? "\n" : ""
             );
         }else{
             return std::format_to(
                 ctx.out(),
-                "{}{} {{\n",
+                "{}{} {{ {}",
                 identifier == "" ? "" : ".",
-                identifier
+                identifier,
+                opts.newlines_and_indents ? "\n" : ""
             );
         }
     }
+    auto newline(auto& ctx) const{
+         return std::format_to(ctx.out(), "{}", opts.newlines_and_indents ? "\n" : "");
+    }
     template<typename T>
-    constexpr auto recurse_format(
+    auto recurse_format(
         T const& obj,
         std::string_view identifier,
         auto& ctx,
@@ -116,10 +152,8 @@ struct auto_formatter{
     )const noexcept{
         auto out = std::format_to(ctx.out(), "");
         // base case: formattable natively (i.e not one of ours)
-        out = apply_indent(ctx, indent);
-        if constexpr (!auto_formattable<T>){
-            out = format_natively(obj, identifier, ctx,opts, indent+1);
-        } else{
+        if (opts.newlines_and_indents) out = apply_indent(ctx, indent);
+        if constexpr (auto_formattable<T>){
             if (is_static){
                 out = std::format_to(ctx.out(), "(static)");
             }
@@ -128,17 +162,20 @@ struct auto_formatter{
                 template for (constexpr auto m: static_members_array<T>()){
                     using U = decltype(obj.[:m:]);
                     out = recurse_format<U>(obj.[:m:], std::meta::identifier_of(m), ctx, opts, indent+1,true);
-                    out = std::format_to(ctx.out(), "\n");
+                    out = newline(ctx);
                 }
             }
             template for (constexpr auto m: nonstatic_members_array<T>()){
                 using U = decltype(obj.[:m:]);
                 out = recurse_format<U>(obj.[:m:], std::meta::identifier_of(m), ctx, opts, indent+1,false);
-                out = std::format_to(ctx.out(), "\n");
+                out = newline(ctx);
             }
-            out = apply_indent(ctx, indent);
+            if (opts.newlines_and_indents) out = apply_indent(ctx, indent);
             out = std::format_to(ctx.out(), "}}");
-    //        out = std::format_to(ctx.out(), "}}\n");
+        } else if constexpr (std::formattable<T,char>){
+            out = format_natively(obj, identifier, ctx,opts, indent+1);
+        }else{
+            static_assert(false, "T=" + std::string(stable_type_name<T>()) + " is not formattable natively, and does not have the auto format trait.");
         }
         return out;
     }
@@ -153,6 +190,6 @@ struct auto_formatter{
 } // NOTE: namespace refl
 
 
-template<typename T> requires refl::auto_formattable<T>
+template<typename T> requires refl::auto_formattable<T> 
 struct std::formatter<T> : refl::auto_formatter { };
 #endif // CPP26

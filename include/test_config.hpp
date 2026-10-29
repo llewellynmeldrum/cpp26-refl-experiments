@@ -10,6 +10,7 @@
 // in config.hpp
 
 #include "auto_format.hpp"
+#include <type_traits>
 struct AUTO_FORMAT Vector2{
     float x{};
     float y{};
@@ -51,7 +52,7 @@ struct AUTO_FORMAT Enemy{
     f32 movespeed{1.0f};
 };
 
-enum struct AUTO_FORMAT NoiseType{
+enum struct NoiseType{
      Perlin CFG_NOTE("this is perlin!!!!"),
     Simplex CFG_NOTE("Im just another soul for sale, oh well."),
      Worlei CFG_NOTE("Kid named worlei"),

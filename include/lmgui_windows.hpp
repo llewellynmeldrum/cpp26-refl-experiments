@@ -57,30 +57,36 @@ using WindowFlags = Flags<WindowFlagBits>;
 
 
 struct WindowSpec{
-    std::string name{""};
-    WindowFlagBits flags{};
+    std::string title{""};
+    WindowFlags flags{};
     glm::vec2 pos{};
     glm::vec2 size{};
     glm::vec2 pivot{};
 
-    SPEC_BUILDER_SET(std::string_view, name);
-    SPEC_BUILDER_SET(WindowFlagBits, flags);
-    SPEC_BUILDER_SET(glm::vec2, pos);
-    SPEC_BUILDER_SET(glm::vec2, size);
-    SPEC_BUILDER_SET(glm::vec2, pivot);
+    SPEC_ENABLE_FLAG(disable_docking, WindowFlagBits::eNoDocking);
+    SPEC_ENABLE_FLAG(lock_size, WindowFlagBits::eNoResize);
+    SPEC_ENABLE_FLAG(lock_pos, WindowFlagBits::eNoMove);
+
+    SPEC_SETTER(std::string_view, title);
+    SPEC_SETTER(WindowFlags, flags);
+    SPEC_SETTER(glm::vec2, pos);
+    SPEC_SETTER(glm::vec2, size);
+    SPEC_SETTER(glm::vec2, pivot);
 };
 
 struct WindowScope{
     explicit WindowScope(WindowSpec info)
-        : name(info.name)
+        : title(info.title)
         , flags(info.flags)
     {
-        ImGui::SetNextWindowPos(info.pos,false,info.pivot);
-        ImGui::SetNextWindowSize(info.size);
-        isVisible = ImGui::Begin(name.c_str(), nullptr, flags.raw());
+        auto pos_condition = flags.has(WindowFlagBits::eNoMove) ? ImGuiCond_Always : ImGuiCond_FirstUseEver;
+        auto size_condition = flags.has(WindowFlagBits::eNoResize) ? ImGuiCond_Always : ImGuiCond_FirstUseEver;
+        ImGui::SetNextWindowPos(info.pos,pos_condition,info.pivot);
+        ImGui::SetNextWindowSize(info.size,size_condition);
+        isVisible = ImGui::Begin(title.c_str(), nullptr, flags.raw());
     }
-    //NOTE:unconditional end() call, unique to ImGui::Begin() and ImGui::BeginChild()
     ~WindowScope(){
+        // unconditional end() call, unique to ImGui::Begin() and ImGui::BeginChild()
         ImGui::End();
     }
     NO_MOVE_CTOR(WindowScope)
@@ -90,7 +96,7 @@ struct WindowScope{
 
     operator bool(){ return isVisible; }
 
-    std::string name{""};
+    std::string title{""};
     WindowFlags flags{};
     bool isVisible;
 };
@@ -100,7 +106,7 @@ inline auto begin_scope(WindowSpec const& spec) -> WindowScope{
 }
 
 
-// NOTE: arguably everything below could be lmgui_child.hpp but thats kind of a creepy name lmao
+// NOTE: arguably everything below could be lmgui_child.hpp but thats kind of a creepy title lmao
 // Flags for ImGui::BeginChild()
 // (Legacy: bit 0 must always correspond to ImGuiChildFlags_Borders to be backward compatible with old API using 'bool border = false'.)
 // About using AutoResizeX/AutoResizeY flags:
@@ -128,25 +134,23 @@ ENUM_WITH_BITWISE ChildWindowFlagBits{
 using ChildWindowFlags = Flags<ChildWindowFlagBits>;
 
 struct ChildWindowSpec{
-    std::string name{""};
-    ChildWindowFlagBits flags{};
-    glm::vec2 pos{};
+    std::string title{""};
+    ChildWindowFlags flags{};
     glm::vec2 size{};
-    glm::vec2 pivot{};
 
-    SPEC_BUILDER_SET(std::string_view, name);
-    SPEC_BUILDER_SET(WindowFlagBits, flags);
-    SPEC_BUILDER_SET(glm::vec2, pos);
-    SPEC_BUILDER_SET(glm::vec2, size);
-    SPEC_BUILDER_SET(glm::vec2, pivot);
+    SPEC_SETTER(std::string_view, title);
+    SPEC_SETTER(ChildWindowFlags, flags);
+    SPEC_SETTER(glm::vec2, pos);
+    SPEC_SETTER(glm::vec2, size);
+    SPEC_SETTER(glm::vec2, pivot);
 };
 
 struct ChildWindowScope{
     explicit ChildWindowScope(ChildWindowSpec info)
-        : name(info.name)
+        : title(info.title)
         , flags(info.flags)
     {
-        isVisible = ImGui::BeginChild(name.c_str(), info.size, flags.raw());
+        isVisible = ImGui::BeginChild(title.c_str(), info.size, flags.raw());
     }
     //NOTE:unconditional end() call, unique to ImGui::Begin() and ImGui::BeginChild()
     ~ChildWindowScope(){
@@ -159,7 +163,7 @@ struct ChildWindowScope{
 
     operator bool(){ return isVisible; }
 
-    std::string name{""};
+    std::string title{""};
     ChildWindowFlags flags{};
     bool isVisible;
 };

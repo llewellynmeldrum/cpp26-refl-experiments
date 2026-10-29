@@ -1,7 +1,9 @@
 #pragma once 
-#include "span_wrapper.hpp"
 #include <string>
 #include <ranges>
+#include <format>
+
+#include "span_wrapper.hpp"
 
 struct zstring_view{
     // NOTE: No std::string_view ctor on purpose.
@@ -16,8 +18,47 @@ struct zstring_view{
     constexpr auto clone () const -> std::string{return std::string(std::from_range, m_span);}
     constexpr auto cstr() const -> const char*{return m_span.data();}
     constexpr auto empty() const -> bool {return m_span.empty();}
-    constexpr auto size() const -> bool {return m_span.size();}
-    constexpr auto length() const -> bool {return m_span.size();}
+    constexpr auto size() const -> size_t {return m_span.size();}
+    constexpr auto length() const -> size_t {return m_span.size();}
+    auto begin(this auto&& m) {return m.m_span.begin();}
+    auto end(this auto&& m) {return m.m_span.end();}
+};
+template<> 
+struct std::formatter<zstring_view>{
+    bool bytes{false};
+    constexpr auto parse(std::format_parse_context& ctx) {
+        auto it = ctx.begin();
+        while (it != ctx.end() && *it != '}'){
+            switch (*it){
+                case 'b': bytes=true; break;
+                default: throw std::format_error("auto_formatter: Unknown option");
+            }
+            it++;
+        }
+        return it;
+    }
+
+    // TODO: REMOVE THE ALLOCATION
+    constexpr auto format(const zstring_view& obj, auto& ctx) const noexcept{
+        auto out = ctx.out();
+        if (bytes){
+            for (const char c : obj){
+                out = std::format_to(ctx.out(), "{:02X} ", c);
+            }
+            out = std::format_to(ctx.out(), "\n");
+            for (const char c : obj){
+                out = std::format_to(ctx.out(), "{{}},", c);
+            }
+        }
+        return std::format_to(ctx.out(), "{}",obj.clone());
+    }
+};
+template<> 
+struct std::hash<zstring_view>{
+    // TODO: REMOVE THE ALLOCATION
+    constexpr auto operator()(zstring_view const& v) const noexcept{
+        return std::hash<std::string>{}(v.clone());
+    }
 };
 
 

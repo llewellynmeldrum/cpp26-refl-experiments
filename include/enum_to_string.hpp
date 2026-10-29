@@ -13,10 +13,6 @@
 #include "zstring_view.hpp"
 #include "cfg_annotations.hpp"
 
-// TODO: big problem. the flat map is not a structural type.
-// I think we will have to instead do index shenaigans. Maybe we only allow enums which are not set to a custom value?
-// This would disallow flag type enums which is a bit sad, but we could always 
-// just have a separate specialization for those, that can be marked as such with an annotation.
 
 namespace impl{
 template<std::meta::info m>
