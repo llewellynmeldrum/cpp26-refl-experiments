@@ -20,7 +20,7 @@
     },
     { "name": "dev",   "inherits": "base", "cacheVariables": { 
         "CMAKE_BUILD_TYPE": "Debug",
-		"_O1": "ON"
+		"_O0": "ON"
     }},
 
     { "name": "cfast", "inherits": "dev",  "cacheVariables": { 
@@ -34,11 +34,15 @@
     }},
 
     { "name": "asan",  "inherits": "dev",  "cacheVariables": { 
-		"_ENABLE_ASAN": "ON" 
+        "CMAKE_BUILD_TYPE": "Debug",
+		"_ENABLE_ASAN": "ON",
+		"_O0": "ON"
     }},
 
     { "name": "ausan", "inherits": "asan", "cacheVariables": { 
-		"_ENABLE_UBSAN": "ON" 
+        "CMAKE_BUILD_TYPE": "Debug",
+		"_ENABLE_UBSAN": "ON",
+		"_O0": "ON"
     }}
   ]
 }

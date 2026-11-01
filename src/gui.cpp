@@ -6,7 +6,7 @@
 #include "engine.hpp"
 #include "imgui_wrapper.hpp"
 #include "common.hpp"
-#include "gui_handler.hpp"
+#include "cfg_gui.hpp"
 struct GuiSettings{
     f32 font_size = 20.0f;
 

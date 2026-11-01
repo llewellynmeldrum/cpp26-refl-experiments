@@ -97,7 +97,7 @@ inline consteval auto satisfies_concept(meta::info r_concept, Args ...args){
     return meta::extract<bool>(meta::substitute(r_concept, {args...}));
 }
 //NOTE: Meta helpers namespace
-namespace mh{
+namespace mh{ // (M)eta (H)elpers
     // mh::str(v) == std::string(v)
     [[nodiscard]] constexpr auto str(std::string_view s) -> std::string{ return std::string(s);}
     [[nodiscard]] constexpr auto str(char const* s)      -> std::string{ return std::string(s);}

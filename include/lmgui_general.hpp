@@ -18,6 +18,7 @@
 #include "primitive_types.hpp"
 
 #include "lmgui_common.hpp"
+#include "lmgui_sliders.hpp"
 #if CPP26
 #include "enum_to_string.hpp"
 #endif 
@@ -57,24 +58,6 @@ inline auto Checkbox(zstring_view label, bool& v, zstring_view hint){
     ui::InlineTooltip(hint);
     return res;
 }
-template<typename T>
-inline auto ClampedSlider(
-    std::string_view label,
-    T& v,
-    T min, 
-    T max,
-    std::optional<std::string_view> tooltip=std::nullopt
-) -> bool {
-    auto changed = false;
-    if constexpr (std::integral<T> && (!std::same_as<T,bool>)){
-//        LOG_DBG("t={},min:{},max:{}"sv,stable_type_name<T>(),min,max);
-        changed = ig::SliderInt(std::string(label).c_str(),&v,min, max, "%d", ImGuiSliderFlags_ClampOnInput);
-    }else {
-        changed = ig::SliderFloat(std::string(label).c_str(),&v,min, max, "%.3f", ImGuiSliderFlags_ClampOnInput);
-    }
-    if (tooltip) ui::InlineTooltip(*tooltip);
-    return changed;
-}
 // TODO: this function needs to be fixed, the inbuf_buf is causing a bunch of null bytes (i think)
 // - also the bottom bar with the buttons should be persistent, i.e locked so that its always below. Maybe a separate window?
 // - Also i want to use the new default font for imgui which is higher res and much nicer looking
@@ -83,7 +66,7 @@ inline auto ClampedSlider(
 inline auto InputString(
     zstring_view label,
     std::string& str,
-    std::optional<std::string_view> tooltip=std::nullopt
+    std::optional<zstring_view> tooltip=std::nullopt
 ) -> bool {
     auto changed = ig::InputText(label.cstr(), &str, ImGuiInputTextFlags_CharsNoBlank);
     if (tooltip) ui::InlineTooltip(*tooltip);

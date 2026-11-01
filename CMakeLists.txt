@@ -184,7 +184,9 @@ target_link_libraries(${APP_NAME} PRIVATE toml11::toml11)
 # FetchContent_MakeAvailable(expected_fs)
 # target_link_libraries(${APP_NAME} PRIVATE expected_fs::expected_fs)
 
-
+target_precompile_headers(${APP_NAME} PRIVATE
+   "${CMAKE_CURRENT_SOURCE_DIR}/include/pch.hpp" 
+)
 
 
 # --- Optimization and sanitizers
@@ -193,10 +195,14 @@ OPTION(_ENABLE_LSAN  "ENABLE ADDRESSSANITIZER LEAK DETECTION" OFF)
 OPTION(_ENABLE_TSAN  "ENABLE THREADSANITIZER" OFF)
 OPTION(_ENABLE_UBSAN "ENABLE UBSAN" OFF)
 OPTION(_FAST_MATH    "ENABLE -FFAST-MATH" OFF)
+OPTION(_O1 "ENABLE -O0" OFF)
 OPTION(_O1 "ENABLE -O1" OFF)
 OPTION(_O2 "ENABLE -O2" OFF)
 OPTION(_O3 "ENABLE -O3" OFF)
 
+if(_O0)
+    target_compile_options(${APP_NAME} PRIVATE -O0)
+endif()
 if(_O1)
     target_compile_options(${APP_NAME} PRIVATE -O1)
 endif()

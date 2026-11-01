@@ -232,16 +232,21 @@ struct PropertyGridScope{
     operator bool(){ return isVisible; }
 
     template<typename Fn>
-    auto&& scalar_row(this auto&& m, std::optional<zstring_view> opt_title, std::optional<zstring_view> hint, Fn&& rhs_column){
+    auto&& scalar_row(
+        this auto&& m,
+        zstring_view title,
+        std::optional<zstring_view> tooltip,
+        zstring_view meta_tooltip,
+        Fn&& rhs_column
+    ){
         // Recall that scalars are leaves and thus cant be closed
         // Column 0: place the value.
-        auto title = opt_title ? opt_title.value().cstr() : "";
-        m.create_label_cell(title, hint, ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_Leaf);
+        m.create_label_cell(title, tooltip, meta_tooltip, ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_Leaf);
 
         // Column 1: place the value. Recall that scalars are leaves and thus cant be closed
         ImGui::TableSetColumnIndex(1);
         ImGui::SetNextItemWidth(-FLT_MIN);
-        ImGui::PushID(title);
+        ImGui::PushID(title.cstr());
             std::invoke(std::forward<Fn>(rhs_column));
         ImGui::PopID();
         return std::forward<decltype(m)>(m);
@@ -250,30 +255,36 @@ struct PropertyGridScope{
 
     // Structs span both columns, and create a collapsable tree node.
     template<typename Fn>
-    auto&& struct_row(this auto&& m, std::optional<zstring_view> opt_title, std::optional<zstring_view> hint, zstring_view preview, Fn&& children){
+    auto&& struct_row(
+        this auto&& m, 
+        zstring_view title,
+        std::optional<zstring_view> tooltip,
+        zstring_view meta_hint,
+        zstring_view preview_txt,
+        Fn&& children
+    ){
         auto row_flags = TableRowFlags{};
         ImGui::TableNextRow(row_flags.raw());
-        auto title = opt_title ? opt_title.value().cstr() : "";
         // column 0 OR 0,1 (spans both if true)
-        if (m.create_label_cell(title, hint, ImGuiTreeNodeFlags_SpanAllColumns)){
-            // tree is open, recurse to my babies
+        if (m.create_label_cell(title, tooltip, meta_hint, ImGuiTreeNodeFlags_SpanAllColumns)){
+            // tree is open, recurse my children 
             std::invoke(std::forward<Fn>(children));
             ImGui::TreePop();
         } else {
         // column 1
             ImGui::TableSetColumnIndex(1);
             ImGui::AlignTextToFramePadding();
-            ui::TruncatedPreviewText(preview);
+            ui::TruncatedPreviewText(preview_txt, "Click to expand preview",true);
         }
         return std::forward<decltype(m)>(m);
     }
 
-    auto create_label_cell(zstring_view title, std::optional<zstring_view> hint, ImGuiTreeNodeFlags flags) -> bool{
+    auto create_label_cell(zstring_view title, std::optional<zstring_view> tooltip, zstring_view hint_extra, ImGuiTreeNodeFlags flags) -> bool{
         ImGui::TableNextRow();
         ImGui::TableSetColumnIndex(0);
         ImGui::AlignTextToFramePadding();
         auto const open = ImGui::TreeNodeEx(title.cstr(), flags);
-        if (hint) ui::InlineTooltip(*hint);
+        ui::TwoLineTooltip(tooltip ? *tooltip : "...",hint_extra);
         return open;
     }
 

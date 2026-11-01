@@ -13,5 +13,6 @@ struct Storage{
     T live{}; 
     std::string_view filename;
     std::optional<T> on_disk_cache {std::nullopt}; // the last read version on disk
+//    std::unordered_map<zstring_view, bool> is_open
 };
 } // namespace cfg 

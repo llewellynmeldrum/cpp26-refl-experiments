@@ -33,21 +33,6 @@ struct Flags{
     underlying_t m_bits{0};
 };
 
-template<typename E>
-    requires is_enum<E>
-constexpr inline auto operator|(Flags<E> lhs, Flags<E> rhs){
-    return Flags<E>(lhs.raw() | rhs.raw());
-};
-template<typename E>
-    requires is_enum<E>
-constexpr inline auto operator&(Flags<E> lhs, Flags<E> rhs){
-    return Flags<E>(lhs.raw() & rhs.raw());
-};
-template<typename E>
-    requires is_enum<E>
-constexpr inline auto operator^(Flags<E> lhs, Flags<E> rhs){
-    return Flags<E>(lhs.raw() ^ rhs.raw());
-};
 
 #if CPP26
 namespace traits{
@@ -63,6 +48,23 @@ namespace traits{
 
 template<typename T> requires is_enum<T>
 constexpr inline bool enable_enum_bitwise = traits::concepts::type_has_trait<T, traits::enable_enum_bitwise_t>;
+
+// Enable bitwise OR between Flags types
+template<typename E>
+    requires is_enum<E>
+constexpr inline auto operator|(Flags<E> lhs, Flags<E> rhs){
+    return Flags<E>(lhs.raw() | rhs.raw());
+};
+template<typename E>
+    requires is_enum<E>
+constexpr inline auto operator&(Flags<E> lhs, Flags<E> rhs){
+    return Flags<E>(lhs.raw() & rhs.raw());
+};
+template<typename E>
+    requires is_enum<E>
+constexpr inline auto operator^(Flags<E> lhs, Flags<E> rhs){
+    return Flags<E>(lhs.raw() ^ rhs.raw());
+};
 
 // Enable bitwise OR between members of the same enum which are signed up for enum_bitwise_or_opt_in
 template<typename E> 
@@ -81,9 +83,32 @@ constexpr inline auto operator^(E lhs, E rhs){
     return Flags<E>(std::to_underlying(lhs) ^ std::to_underlying(rhs));
 };
 
-#endif
+// Enable bitwise between Flags<E> and E, which returns flags
+template<typename E> requires is_enum<E> && enable_enum_bitwise<E>
+constexpr inline auto operator|(Flags<E> lhs, E rhs){
+    return Flags<E>(lhs.raw() | std::to_underlying(rhs));
+};
+template<typename E> requires is_enum<E> && enable_enum_bitwise<E>
+constexpr inline auto operator&(Flags<E> lhs, E rhs){
+    return Flags<E>(lhs.raw() & std::to_underlying(rhs));
+};
+template<typename E> requires is_enum<E> && enable_enum_bitwise<E>
+constexpr inline auto operator^(Flags<E> lhs, E rhs){
+    return Flags<E>(lhs.raw() ^ std::to_underlying(rhs));
+};
 
-#define MANUAL_ENABLE_ENUM_BITWISE(ENUM) template<> inline constexpr bool enable_enum_bitwise_or<ENUM> = true;
+
+
+namespace static_test{
+ENUM_WITH_BITWISE test_enum{
+    A = 0b0001,
+    B = 0b0010,
+    C = 0b0100,
+};
+static_assert(Flags<test_enum>{test_enum::A | test_enum::B | test_enum::C}.raw() == (0b1|0b10|0b100));
+static_assert(Flags<test_enum>{test_enum::A & test_enum::C}.raw() == (0b1&0b100));
+}
+#endif
 
 
 //template<typename T>

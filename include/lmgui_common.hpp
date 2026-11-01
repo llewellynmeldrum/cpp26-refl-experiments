@@ -13,6 +13,25 @@ namespace ui{
 [[nodiscard]] inline  auto ViewportSize() -> glm::vec2 { return ig::GetMainViewport()->Size;}
 [[nodiscard]] inline  auto AvaliableRegion() -> glm::vec2 { return ig::GetContentRegionAvail();}
 [[nodiscard]] inline  auto ElementHeight() -> f32{ return ig::GetFrameHeightWithSpacing();}
+inline auto TruncatedText(
+    zstring_view txt,
+    std::size_t num_chars_remaining
+) -> void {
+    //auto out = txt.clone();
+    ASSERT(num_chars_remaining>0);
+    auto out = txt.clone().substr(0, std::min(txt.length(), num_chars_remaining));
+    if (out.length() != txt.length()){ // truncation
+        if (out.length()<3){
+            out = "...";
+        }else{
+            // out.at(out.size()-0) = '.'; the null terminator - i.e past the end of the string. prolly throws std::out_of_range
+            out.at(out.size()-1) = '.';
+            out.at(out.size()-2) = '.';
+            out.at(out.size()-3) = '.';
+        }
+    }
+    ig::TextUnformatted(out.c_str());
+}
 inline auto InlineTooltip(std::string_view desc) -> void {
     ig::SameLine();
     ig::TextDisabled("(?)");
@@ -20,6 +39,27 @@ inline auto InlineTooltip(std::string_view desc) -> void {
         ig::PushTextWrapPos(ig::GetFontSize() * 35.0f);
         ig::TextUnformatted(std::string(desc).c_str());
         ig::PopTextWrapPos();
+        ig::EndTooltip();
+    }
+}
+// tooltip with a greyed out suffix
+inline auto TwoLineTooltip(zstring_view desc, zstring_view suffix) -> void {
+    static constexpr auto second_line_min_length = 35uz;
+    ig::SameLine();
+    ig::TextDisabled("(?)");
+    if (ig::BeginItemTooltip()) {
+        ig::TextUnformatted(desc.cstr());
+        ImGui::BeginDisabled();
+            ui::TruncatedText(suffix,std::max(desc.length(),second_line_min_length));
+        ImGui::EndDisabled();
+        ig::EndTooltip();
+    }
+}
+inline auto Tooltip(zstring_view desc) -> void {
+    ig::SameLine();
+    ig::TextDisabled("(?)");
+    if (ig::BeginItemTooltip()) {
+        ig::TextUnformatted(desc.cstr());
         ig::EndTooltip();
     }
 }
@@ -48,12 +88,13 @@ inline auto HintPrevious(zstring_view desc) -> void {
     }
     ig::NewLine();
 }
-inline auto TruncatedPreviewText(
+inline auto TruncatedText(
     zstring_view txt,
-    std::optional<std::string_view> tooltip=std::nullopt
-) -> void{
+    f32 portion_of_remaining=1.0f
+) -> void {
     //auto out = txt.clone();
-    auto x_remaining = ImGui::GetContentRegionAvail().x;
+    ASSERT(portion_of_remaining <= 1.0f);
+    auto x_remaining = ImGui::GetContentRegionAvail().x * portion_of_remaining;
     auto font = ImGui::GetFont();
     char const* end{};
     auto* begin = txt.cstr();
@@ -63,21 +104,31 @@ inline auto TruncatedPreviewText(
     if (out.length() == txt.length()){ // no truncation
         out = txt.clone();
     }else{
-        if (out.length() != txt.length()){// text got truncated 
-            if (out.length()<3){
-                out = "...";
-            }else{
-                // out.at(out.size()-0) = '.'; the null terminator - i.e past the end of the string. prolly throws std::out_of_range
-                out.at(out.size()-1) = '.';
-                out.at(out.size()-2) = '.';
-                out.at(out.size()-3) = '.';
-            }
+        if (out.length()<3){
+            out = "...";
+        }else{
+            // out.at(out.size()-0) = '.'; the null terminator - i.e past the end of the string. prolly throws std::out_of_range
+            out.at(out.size()-1) = '.';
+            out.at(out.size()-2) = '.';
+            out.at(out.size()-3) = '.';
         }
     }
-    ig::BeginDisabled();
     ig::TextUnformatted(out.c_str());
+}
+inline auto TruncatedPreviewText(
+    zstring_view txt,
+    std::optional<zstring_view> tooltip=std::nullopt,
+    bool grey_tooltip=false
+) -> void{
+    ig::BeginDisabled();
+    TruncatedText(txt,1.0f);
     ig::EndDisabled();
-    if (tooltip) ui::InlineTooltip(*tooltip);
+    if (grey_tooltip) ig::BeginDisabled();
+    if (tooltip) ui::HintPrevious(*tooltip);
+    if (grey_tooltip) ig::EndDisabled();
+}
+inline auto Separator()->void{
+    ImGui::Separator();
 }
 inline auto Label(
     std::string_view label,
@@ -85,6 +136,15 @@ inline auto Label(
 ) -> void{
     ig::TextUnformatted(std::string(label).c_str());
     if (tooltip) ui::InlineTooltip(*tooltip);
+}
+inline auto LabelDisabled(
+    std::string_view label,
+    std::optional<std::string_view> tooltip=std::nullopt
+) -> void{
+    ig::BeginDisabled();
+    ig::TextUnformatted(std::string(label).c_str());
+    if (tooltip) ui::InlineTooltip(*tooltip);
+    ig::EndDisabled();
 }
 
 template<typename FlagBits, typename Flags> requires std::is_enum_v<FlagBits>

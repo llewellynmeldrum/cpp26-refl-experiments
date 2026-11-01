@@ -15,7 +15,9 @@
 
 #pragma once
 
+#include <cpptrace/basic.hpp>
 #include <libassert/assert.hpp>
+#include <cpptrace/cpptrace.hpp>
 
 //---- Define assertion handler. Defaults to calling assert().
 // - If your macro uses multiple statements, make sure is enclosed in a 'do { .. } while (0)' block so it can be used as a single statement.
@@ -141,7 +143,11 @@
 
 //---- Debug Tools: Macro to break in Debugger (we provide a default implementation of this in the codebase)
 // (use 'Metrics->Tools->Item Picker' to pick widgets with the mouse and break into them for easy debugging.)
-#define IM_DEBUG_BREAK  LIBASSERT_BREAKPOINT
+[[noreturn]]inline void break_with_trace() noexcept{
+    cpptrace::generate_trace(1).print();
+    LIBASSERT_BREAKPOINT();
+}
+#define IM_DEBUG_BREAK  break_with_trace
 
 //---- Debug Tools: Enable highlight ID conflicts _before_ hovering items. When io.ConfigDebugHighlightIdConflicts is set.
 // (THIS WILL SLOW DOWN DEAR IMGUI. Only use occasionally and disable after use)
