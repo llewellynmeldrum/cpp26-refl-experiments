@@ -55,14 +55,6 @@ inline auto TwoLineTooltip(zstring_view desc, zstring_view suffix) -> void {
         ig::EndTooltip();
     }
 }
-inline auto Tooltip(zstring_view desc) -> void {
-    ig::SameLine();
-    ig::TextDisabled("(?)");
-    if (ig::BeginItemTooltip()) {
-        ig::TextUnformatted(desc.cstr());
-        ig::EndTooltip();
-    }
-}
 inline auto InlineTooltip(zstring_view desc, bool sameline=true) -> void {
     if (sameline){
         ig::SameLine();

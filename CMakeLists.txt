@@ -25,6 +25,22 @@ target_include_directories(${APP_NAME} PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
 
+# -- PROJECT SPECIFIC MACROS
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp" 
+PROPERTIES COMPILE_DEFINITIONS "PERMIT_ENGINE_HPP_INCLUDE=1")
+
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/src/gui.cpp" 
+PROPERTIES COMPILE_DEFINITIONS "PERMIT_ENGINE_HPP_INCLUDE=1")
+
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/src/engine.cpp" 
+PROPERTIES COMPILE_DEFINITIONS "PERMIT_ENGINE_HPP_INCLUDE=1")
+
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/include/gui.hpp" 
+PROPERTIES COMPILE_DEFINITIONS "PERMIT_ENGINE_HPP_INCLUDE=1")
+
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/include/engine.hpp" 
+PROPERTIES COMPILE_DEFINITIONS "PERMIT_ENGINE_HPP_INCLUDE=1")
+
 
 target_compile_options(${APP_NAME} PRIVATE
     -Wall
@@ -142,6 +158,19 @@ target_link_libraries(${APP_NAME} PRIVATE
     imgui
 )
 
+# IMPLOT
+# ---------------------------------------
+target_include_directories(${APP_NAME} SYSTEM PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/implot"
+)
+add_subdirectory(
+    external/implot
+    SYSTEM
+)
+target_link_libraries(${APP_NAME} PRIVATE
+    implot
+)
+
 
 
 
@@ -195,7 +224,7 @@ OPTION(_ENABLE_LSAN  "ENABLE ADDRESSSANITIZER LEAK DETECTION" OFF)
 OPTION(_ENABLE_TSAN  "ENABLE THREADSANITIZER" OFF)
 OPTION(_ENABLE_UBSAN "ENABLE UBSAN" OFF)
 OPTION(_FAST_MATH    "ENABLE -FFAST-MATH" OFF)
-OPTION(_O1 "ENABLE -O0" OFF)
+OPTION(_O0 "ENABLE -O0" OFF)
 OPTION(_O1 "ENABLE -O1" OFF)
 OPTION(_O2 "ENABLE -O2" OFF)
 OPTION(_O3 "ENABLE -O3" OFF)
@@ -244,3 +273,5 @@ if(APPLE)
         )
     endif()
 endif()
+
+

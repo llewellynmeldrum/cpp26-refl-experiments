@@ -14,12 +14,13 @@
     #define CFG_NOTE(txt)                             [[=cfg::Note{std::define_static_string(txt)}]]
     #define CFG_NAME(name)                             [[=cfg::Name{std::define_static_string(name)}]]
     #define CFG_SKIP                                  [[=cfg::Skip{}]]
-    #define CFG_REGISTER_ROOT_CONFIG(name, desc)      [[=cfg::Registration{std::define_static_string(name), std::define_static_string(desc)}]]
+    #define CFG_REGISTER_ROOT_CONFIG(name, desc)      [[=cfg::Registration{std::define_static_string(name), std::define_static_string(desc), std::define_static_string(__FILE__)}]]
 #endif
 namespace cfg{
 struct AUTO_FORMAT Registration{
-    char const* config_name{"UNDEFINED CONFIG NAME"}; 
-    char const* description{"UNDEFINED CONFIG DESCRIPTION"}; 
+    char const* config_name{"UNDEF CONFIG NAME"}; 
+    char const* description{"UNDEF CONFIG DESCRIPTION"}; 
+    char const* header_file_loc{"UNDEF CONFIG HEADER FILE LOC"}; 
 };
 
 struct AUTO_FORMAT Range{

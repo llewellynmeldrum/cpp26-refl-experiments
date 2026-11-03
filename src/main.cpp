@@ -17,9 +17,13 @@
 #include "cfg_metadata.hpp"
 #include "auto_format.hpp"
 
+#include "timer.hpp"
+
+
 int main(){
     cpptrace::register_terminate_handler();
     toml::color::enable();
+    timer::set_prog_epoch();
 
 //    auto str = std::string{};
 //    #if CPP26
@@ -34,10 +38,6 @@ int main(){
 //    } else{
 //        LOG_ERROR("Failed to load config from storage.");
 //    }
-    auto& e = Engine::get();
-    while (!e.window.shouldClose){
-        e.window.show();
-    }
-
-    return 0;
+    auto e = Engine();
+    e.run();
 }

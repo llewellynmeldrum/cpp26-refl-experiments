@@ -53,7 +53,7 @@ concept same_as_none_nocvref = ((!same_as_nocvref<T, Ts>) && ...);
 
 // NOTE: Numeric concepts
 template<typename T>
-concept is_numeric = std::floating_point<T> || std::integral<T>;
+concept is_numeric = (!same_as_nocvref<T,bool>) && (std::floating_point<T> || std::integral<T>);
 
 
 // NOTE: generic concepts

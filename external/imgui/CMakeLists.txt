@@ -18,7 +18,7 @@ target_compile_definitions(imgui PUBLIC
 )
 
 # GLM dep
-target_include_directories(imgui PRIVATE
+target_include_directories(imgui PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}../OpenGL-Mathematics"
 )
 
@@ -35,7 +35,7 @@ target_link_libraries(imgui PUBLIC
 target_include_directories(imgui PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}../libassert/include"
 )
-target_link_libraries(imgui PRIVATE
+target_link_libraries(imgui PUBLIC
     libassert::assert
 )
 

@@ -58,7 +58,7 @@ struct MenuBarScope{
     }
     auto item(zstring_view label, std::optional<zstring_view> shortcut) -> bool {
         auto res = ImGui::MenuItem(label.cstr());
-        if (shortcut) ui::InlineTooltip(*shortcut);
+        if (shortcut) ui::HintPrevious(*shortcut);
         
         return res;
     }

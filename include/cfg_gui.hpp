@@ -128,7 +128,7 @@ auto edit_config_window(Storage<T> & storage) -> ConfigActions{
     auto window_spec = ui::WindowSpec{}
         .set_size(main_window_size)
         .set_pos(main_window_pos)
-        .set_title(reg.config_name)
+        .set_title(std::format("'{}' (struct {}, file:{})", reg.config_name, stable_type_name<T>(), reg.header_file_loc))
         .lock_size()
         .set_flags(ui::WindowFlagBits::eMenuBar)
     ;
@@ -136,7 +136,7 @@ auto edit_config_window(Storage<T> & storage) -> ConfigActions{
         .set_title("Srolling Body")
         .set_size({0,-footer_height})
     ;
-    auto header_content_spec = ui::ChildWindowSpec{}
+    auto footer_content_spec = ui::ChildWindowSpec{}
         .set_title("Footer")
         .set_size({0,footer_height})
     ;
@@ -156,10 +156,6 @@ auto edit_config_window(Storage<T> & storage) -> ConfigActions{
                 );
             });
         }
-        if (auto child = ui::begin_scope(header_content_spec)){
-            ui::Label(std::format("struct {}:",mh::str(std::meta::identifier_of(^^T))));
-            ui::Separator();
-        }
        // static auto test_flags = ui::TableFlags{ui::TableFlagBits::eNone};
        // ui::edit_flags<ui::TableFlagBits>(test_flags);
         auto & root = storage.live;
@@ -172,6 +168,10 @@ auto edit_config_window(Storage<T> & storage) -> ConfigActions{
             if (auto grid = ui::begin_scope(property_grid_spec)){
                 res.edited = edit_members_of(grid, root, make_field_info<^^T>(stable_type_name_zstr<T>(),true));
             }
+        }
+        if (auto child = ui::begin_scope(footer_content_spec)){
+            ui::Separator();
+            ui::Label("This is a footer.");
         }
     }
     return res;

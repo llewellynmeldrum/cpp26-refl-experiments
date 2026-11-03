@@ -241,7 +241,7 @@ struct PropertyGridScope{
     ){
         // Recall that scalars are leaves and thus cant be closed
         // Column 0: place the value.
-        m.create_label_cell(title, tooltip, meta_tooltip, ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_Leaf);
+        m.create_label_cell(title, tooltip, meta_tooltip, ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_DrawLinesToNodes);
 
         // Column 1: place the value. Recall that scalars are leaves and thus cant be closed
         ImGui::TableSetColumnIndex(1);
@@ -266,7 +266,7 @@ struct PropertyGridScope{
         auto row_flags = TableRowFlags{};
         ImGui::TableNextRow(row_flags.raw());
         // column 0 OR 0,1 (spans both if true)
-        if (m.create_label_cell(title, tooltip, meta_hint, ImGuiTreeNodeFlags_SpanAllColumns)){
+        if (m.create_label_cell(title, tooltip, meta_hint, ImGuiTreeNodeFlags_SpanAllColumns |ImGuiTreeNodeFlags_DrawLinesToNodes)){
             // tree is open, recurse my children 
             std::invoke(std::forward<Fn>(children));
             ImGui::TreePop();
@@ -274,7 +274,7 @@ struct PropertyGridScope{
         // column 1
             ImGui::TableSetColumnIndex(1);
             ImGui::AlignTextToFramePadding();
-            ui::TruncatedPreviewText(preview_txt, "Click to expand preview",true);
+            ui::TruncatedPreviewText(preview_txt, "Left click to expand preview",true);
         }
         return std::forward<decltype(m)>(m);
     }

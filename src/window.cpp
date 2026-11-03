@@ -39,8 +39,6 @@ Window::Window(std::string a_name, glm::ivec2 window_logical_extent)
     );
     SDL_SetWindowPosition(m_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 
-    ui.init(m_renderer,m_window,m_main_scale);
-
     SDL_SetHint(SDL_HINT_FORCE_RAISEWINDOW, "1");
     SDL_ShowWindow(m_window);
     SDL_RaiseWindow(m_window);
@@ -49,25 +47,32 @@ auto Window::clear(f32 r, f32 g, f32 b, f32 a) -> void{
     SDL_SetRenderDrawColorFloat(m_renderer, r,g,b,a);
     SDL_RenderClear(m_renderer);
 }
-auto Window::begin_frame() ->void{
+auto Window::draw_bullshit() ->void{
+    std::srand(time(NULL));
+    auto random = [](f32 min, f32 max){
+        return min + ((std::rand() / (f32)RAND_MAX) * (max-min));
+    };
+    auto c = random(0,1);
+    SDL_SetRenderDrawColorFloat(m_renderer, c,c,c,1.0f);
+    for (int i = 0; i<100000; i++){
+        auto x = random(0,m_window_logical_extent.x);
+        auto y = random(0,m_window_logical_extent.y);
+        SDL_RenderPoint(m_renderer, x,y);
+    }
+}
+auto Window::begin_frame(glm::vec2 framebuffer_scale) ->void{
     if (SDL_GetWindowFlags(m_window) & SDL_WINDOW_MINIMIZED) {
         SDL_Delay(10);
         return;
     }
-    set_render_scale(ui.framebuffer_scale_x(), ui.framebuffer_scale_y());
-    clear(ui.clear_color.x, ui.clear_color.y, ui.clear_color.z, ui.clear_color.w);
+    set_render_scale(framebuffer_scale.x,framebuffer_scale.y);
+    clear(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
 }
 auto Window::present_frame() ->void{
     SDL_RenderPresent(m_renderer);
 }
 auto Window::set_render_scale(f32 x, f32 y) ->void{
     SDL_SetRenderScale(m_renderer, x, y); 
-}
-auto Window::show() ->void{
-    handle_inputs();
-    begin_frame();
-    ui.show();
-    present_frame();
 }
 
 auto Window::handle_inputs() -> void{
@@ -97,10 +102,6 @@ auto Window::handle_inputs() -> void{
 }
 
 Window::~Window(){
-    ImGui_ImplSDLRenderer3_Shutdown();
-    ImGui_ImplSDL3_Shutdown();
-    ImGui::DestroyContext();
-
     SDL_DestroyRenderer(m_renderer);
     SDL_DestroyWindow(m_window);
     SDL_Quit();
