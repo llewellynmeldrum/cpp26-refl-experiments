@@ -50,7 +50,7 @@ struct HistoryBuffer{
     std::vector<DataType> buf = std::vector(Capacity, DataType{});
 
     constexpr auto push(DataType const& v) -> void{
-        buf[offset()] = v;
+        buf[write_slot()] = v;
         write_count++;
     }
     // oldest first order
@@ -59,40 +59,36 @@ struct HistoryBuffer{
         auto const slot = (m.oldest_slot() + idx) % m.Capacity;
         return m.buf[slot];
     }
-    constexpr auto oldest(this auto& m) -> decltype(auto){
-        return m.at(m.oldest_slot());
-    }
-    constexpr auto newest(this auto& m) -> decltype(auto){
-        return m.at(m.newest_slot());
-    }
+    constexpr auto oldest(this auto& m) -> decltype(auto){ return m.at(m.oldest_slot()); }
+    constexpr auto newest(this auto& m) -> decltype(auto){ return m.at(m.newest_slot()); }
 
     constexpr auto data(this auto& m) -> decltype(auto){
         return m.buf.data();
     }
 
-    constexpr auto oldest_slot(){
-        return full() ? write_count % Capacity : 0z;
+    // time index -> slot, i.e 0 is the oldest, 1 is the 2nd oldest, 2 is the third oldest
+    // returns the ith oldest slot
+    constexpr auto slot_of(u64 i) const -> u64{
+        auto base_slot = full() ? write_slot() : 0uz;
+        return (base_slot + i) % Capacity;
     }
-    constexpr auto newest_slot(){
-        ASSERT(!empty());
-        return (write_count-1) % Capacity;
-    }
+    constexpr auto oldest_slot() const -> u64{ ASSERT(!empty()); return slot_of(0);}
+    constexpr auto newest_slot() const -> u64{ ASSERT(!empty()); return slot_of(valid_samples()-1);}
 
 
 
-    constexpr auto offset() const -> u64{
-        return write_count % Capacity;
-    }
-    constexpr auto empty() const -> bool{
-        return write_count == 0 ;
-    }
+    constexpr auto write_slot() const -> u64{ return write_count % Capacity; }
 
-    constexpr auto full() const -> bool{
-        return write_count >= Capacity ;
-    }
-    constexpr auto stride() const -> u64{
-        return sizeof(DataType);
-    }
+    // Self explanatory
+    constexpr auto empty() const -> bool{ return write_count == 0 ; }
+
+    // Have the slots been filled, and overwrites have begun?
+    constexpr auto full() const -> bool{ return write_count >= Capacity ; }
+
+    // valid elements count.
+    constexpr auto stride() const -> u64{ return sizeof(DataType); }
+    constexpr auto total_samples() const -> u64{ return write_count; }
+    constexpr auto valid_samples() const -> u64{ return full() ? Capacity : write_count; }
 };
 
 

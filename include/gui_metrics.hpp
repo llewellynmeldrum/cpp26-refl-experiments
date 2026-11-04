@@ -29,26 +29,32 @@ inline auto display_frametime_graph(
     using namespace ImPlot;
     if (BeginPlot("Frametime", glm::vec2{800,300}, ImPlotFlags_NoMouseText)){
         SetupAxis(ImAxis_X1, "frames");
-        auto& stage0 = trackers[0];
-        auto& hbuf = trackers[0].tracker.hbuf;
+        auto& stage0 = trackers[1];
+        auto& hbuf = stage0.tracker.hbuf;
         // the max X is the X coordinate of the newest sample
         auto max_x = f64(hbuf.write_count);
         // the min X is the X coordinate of the oldest sample
         auto min_x = f64(hbuf.write_count) - f64(stage0.tracker.Capacity);
         SetupAxisLimits(ImAxis_X1, min_x, max_x, ImPlotCond_Always);
-        SetupAxisFormat(ImAxis_X1, "%d");
+        SetupAxisFormat(ImAxis_X1, "");
 
 
         SetupAxis(ImAxis_Y1, "ms");
         SetupAxisLimits(ImAxis_Y1, 0.0, 50.0);
         SetupLegend(ImPlotLocation_NorthWest, ImPlotLegendFlags_Horizontal);
-        PlotShaded(stage0.name.cstr(), &hbuf.oldest(), hbuf.write_count, 0, 1, hbuf.oldest_slot(), {
-            ImPlotProp_LineColor, ImVec(stage0.gr_line),
+        auto graph_x_start = f64(hbuf.total_samples()) - f64(hbuf.valid_samples());
+        PlotShaded(stage0.name.cstr(), hbuf.data(), hbuf.valid_samples(), 0, 1, graph_x_start, {
             ImPlotProp_FillColor, ImVec(stage0.gr_fill),
             ImPlotProp_Stride, hbuf.stride(),
-            ImPlotProp_Offset , hbuf.offset(),
+            ImPlotProp_Offset , hbuf.write_slot(),
             ImPlotProp_FillAlpha, 0.5f,
         });
+        PlotLine(stage0.name.cstr(), hbuf.data(), hbuf.valid_samples(), 1, graph_x_start,{
+            ImPlotProp_LineColor, ImVec(stage0.gr_line),
+            ImPlotProp_Stride, hbuf.stride(),
+            ImPlotProp_Offset , hbuf.write_slot(),
+        });
+
 
 
         EndPlot();
