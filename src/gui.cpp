@@ -67,11 +67,13 @@ auto Gui::draw() -> void{
         #endif
     ;
     if(auto window = ui::begin_scope(spec)){
-        display_frametime_graph(m_eng.ms_frametime);
+        display_frametime_graph(m_frame_count, m_eng.tracker_stages());
+    
     }
     if (true /*cfg.draw_implot_demo()*/){
         ImPlot::ShowDemoWindow();
     }
+    m_frame_count++;
 }
 
 auto Gui::framebuffer_scale() -> glm::vec2{

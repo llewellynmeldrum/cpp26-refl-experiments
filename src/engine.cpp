@@ -1,24 +1,25 @@
 #include "engine.hpp"
+#include "metrics.hpp"
 void Engine::run(){
     while (!window.shouldClose){
-        auto _ = ms_frametime.sample_scope_duration();
         {
-            // input time
+            auto _ = trk_input.tracker.push_scope_duration();
             window.handle_inputs();
         }
         {
-            // draw time
+            auto _ = trk_draw.tracker.push_scope_duration();
             window.begin_frame(gui.framebuffer_scale());
             window.draw_bullshit();
         }
         {
-            // gui time
+            auto _ = trk_gui.tracker.push_scope_duration();
             gui.begin_frame();
             gui.draw();
             gui.draw_config_window(config_storage);
             gui.end_frame();
         }
-        { // present time
+        { 
+            auto _ = trk_present.tracker.push_scope_duration();
             window.present_frame();
         }
     }

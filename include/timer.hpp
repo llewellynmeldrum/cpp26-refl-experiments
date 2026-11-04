@@ -107,6 +107,19 @@ struct [[nodiscard]] ScopeStopwatch{
 //        std::println("Scope stopwatch dtor, duration: {}",out);
     } 
 };
+struct [[nodiscard]] ScopeStopwatchAccumulator{
+    using StoredType = timer::duration;
+    f64& accumulator;
+    StoredType & out;
+    std::function<void(void*)> dtor_callback = [](void*){};
+    void* user_data = nullptr;
+    timer::time_point t0 = timer::now();
+    ~ScopeStopwatchAccumulator(){
+        out = timer::now() - t0;
+        std::invoke(dtor_callback,user_data);
+//        std::println("Scope stopwatch dtor, duration: {}",out);
+    } 
+};
 /* example: 
 f64 t_ms{};
 {

@@ -316,35 +316,7 @@ auto read_into(
 #include "primitive_types.hpp"
 #include "cppslop.hpp"
 
-#if !CPP26
 
-template<typename T>
-consteval auto _identifier_of(T const& val) -> std::string_view{
-    return "UNKNOWN, NO REFLECTION"sv;
-}
-
-#else
-
-template <typename E>
-constexpr auto enum_to_string(E value) -> std::string_view{
-    template for (constexpr auto e : std::define_static_array(std::meta::enumerators_of(^^E))) {
-        if (value == [:e:]) { 
-            return std::meta::identifier_of(e); 
-        }
-    }
-    return "<unknown>";
-}
-
-#include <meta>
-template<typename T> 
-consteval auto _identifier_of(T const& v){
-    if constexpr(std::is_enum_v<T>){
-        return enum_to_string(v);
-    }else{
-        return "UNIMPLEMENTED";
-    }
-}
-#endif
 
 namespace cfg{
 

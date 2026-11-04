@@ -7,6 +7,11 @@
 #include <deque>
 #include <ranges>
 
+template<typename T> requires std::integral<T> && (!std::same_as<T,bool>)
+auto euclid_mod(T a, T b){
+    int r = a %b;
+    return T{r<0 ? r+std::abs(b) : r};
+}
 
 // SECTION: macros -------------------------------------------------------------
 
@@ -63,3 +68,5 @@ using namespace std::string_view_literals;
 //NOTE: instantiate this to get a compile error with the type name included
 template <typename T>
 struct force_type_error;
+
+

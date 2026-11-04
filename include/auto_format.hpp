@@ -15,8 +15,10 @@
 
 #if !CLANGD_PARSE
 #define AUTO_FORMAT [[=refl::auto_format]]
+#define AUTO_HASH [[=refl::auto_format]]
 #else
 #define AUTO_FORMAT 
+#define AUTO_HASH
 #endif
 
 #if CPP26
@@ -38,7 +40,9 @@ struct std::formatter<T>{
 namespace refl{
 
 struct auto_format_tag{};
+struct auto_hash_tag{};
 inline constexpr auto auto_format = auto_format_tag{};
+inline constexpr auto auto_hash = auto_hash_tag{};
 
 
 consteval bool verify_auto_format_tag(std::meta::info m){
@@ -53,6 +57,9 @@ consteval bool verify_auto_format_tag(std::meta::info m){
 }
 template<typename T>
 concept auto_formattable = has_annotation<refl::auto_format_tag>(^^T) && verify_auto_format_tag(^^T);
+
+template<typename T>
+concept auto_hashable = has_annotation<refl::auto_hash_tag>(^^T);
 
 
 struct auto_formatter{
@@ -189,6 +196,22 @@ struct auto_formatter{
 };
 } // NOTE: namespace refl
 
+
+template<typename T> requires refl::auto_hashable<T> 
+struct std::hash<T>{
+    constexpr auto operator()(T const& v) const noexcept -> std::size_t{
+        if constexpr (!std::meta::is_complete_type(^^T)){
+            throw std::meta::exception("auto hasher : [with T="+std::string(std::meta::display_string_of(^^T))+"] T must be a complete type."sv,^^T);
+        }else if constexpr (std::is_class_v<T>){
+            template for(constexpr auto m: nonstatic_members_array<T>){
+                using Mt = typename [:type_of(m):];
+                return std::hash<Mt>{}(v.[:m:]);
+            }
+        }else{
+            return std::hash<T>{}(v);
+        }
+    };
+};
 
 template<typename T> requires refl::auto_formattable<T> 
 struct std::formatter<T> : refl::auto_formatter { };

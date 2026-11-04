@@ -7,9 +7,38 @@
 #include "metrics.hpp"
 #include "cppslop.hpp"
 #include "cfg_gui.hpp"
+#include "utils.hpp"
 
 FORWARD_DECLARE_STRUCT( Engine );
 
+struct TrackerStage{
+    zstring_view name{"n/a"};
+    zstring_view hint{"n/a"};
+    glm::vec4 gr_fill= util::_01rgb(0,0,0);
+    glm::vec4 gr_line= util::_01rgb(0,0,0);
+    MTR::DurationTracker tracker{};
+};
+inline TrackerStage trk_input{
+    .name = "Input",
+    .gr_fill = util::_01rgb(255,0,0),
+    .gr_line = util::_01rgb(128,0,0),
+};
+
+inline TrackerStage trk_draw{
+    .name = "Draw",
+    .gr_fill = util::_01rgb(255,255,0),
+    .gr_line = util::_01rgb(128,128,0),
+};
+inline TrackerStage trk_gui{
+    .name = "Gui",
+    .gr_fill = util::_01rgb(0,255,0),
+    .gr_line = util::_01rgb(0,128,0),
+};
+inline TrackerStage trk_present{
+    .name = "Present",
+    .gr_fill = util::_01rgb(0,0,255),
+    .gr_line = util::_01rgb(0,0,128),
+};
 struct Gui{
     Gui(Engine const& engine, SDL_Renderer* renderer, SDL_Window* window, f32 main_scale)
         : m_eng(engine)
@@ -47,6 +76,7 @@ struct Gui{
 #endif // CPP26
 
     auto draw() -> void;
+    u64 m_frame_count{};
 
 
 
