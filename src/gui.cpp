@@ -60,15 +60,23 @@ auto Gui::end_frame() -> void{
 
 auto Gui::draw() -> void{
     auto io = ig::GetIO();
-    auto spec= ui::WindowSpec{"Metrics"} 
+    auto spec0 = ui::WindowSpec{"Frametime"} 
         .disable_docking()
         #if CPP26
         .set_flags(ui::WindowFlagBits::eNoBackground | ui::WindowFlagBits::eNoDecoration)
         #endif
     ;
-    if(auto window = ui::begin_scope(spec)){
-        display_frametime_graph(m_frame_count, m_eng.tracker_stages());
-    
+    auto spec1 = ui::WindowSpec{"Frametime Breakdown"} 
+        .disable_docking()
+        #if CPP26
+        .set_flags(ui::WindowFlagBits::eNoBackground | ui::WindowFlagBits::eNoDecoration)
+        #endif
+    ;
+    if(auto window = ui::begin_scope(spec0)){
+        display_frametime_graph(spec0.title, m_eng.tracker_frametime());
+    }
+    if(auto window = ui::begin_scope(spec1)){
+        display_stacked_frametime_breakdown_graph(spec1.title, m_eng.tracker_stages());
     }
     if (true /*cfg.draw_implot_demo()*/){
         ImPlot::ShowDemoWindow();

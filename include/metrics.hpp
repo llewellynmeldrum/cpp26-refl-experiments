@@ -59,8 +59,8 @@ struct HistoryBuffer{
         auto const slot = (m.oldest_slot() + idx) % m.Capacity;
         return m.buf[slot];
     }
-    constexpr auto oldest(this auto& m) -> decltype(auto){ return m.at(m.oldest_slot()); }
-    constexpr auto newest(this auto& m) -> decltype(auto){ return m.at(m.newest_slot()); }
+    constexpr auto oldest(this auto& m) -> decltype(auto){ return m.buf[m.oldest_slot()]; }
+    constexpr auto newest(this auto& m) -> decltype(auto){ return m.buf[m.newest_slot()]; }
 
     constexpr auto data(this auto& m) -> decltype(auto){
         return m.buf.data();
@@ -89,6 +89,18 @@ struct HistoryBuffer{
     constexpr auto stride() const -> u64{ return sizeof(DataType); }
     constexpr auto total_samples() const -> u64{ return write_count; }
     constexpr auto valid_samples() const -> u64{ return full() ? Capacity : write_count; }
+
+    // aka x_offset in the graph
+    constexpr auto oldest_sample() const -> u64 {return total_samples() - valid_samples(); }
+
+    // if the sample is at least the oldest, and is not the write_count'th, which is the next to be written
+    constexpr auto contains_sample(u64 s) const -> bool {
+        return oldest_sample() <= s && s < write_count;
+    }
+    constexpr auto sample(this auto& m, u64 s) -> decltype(auto){
+        ASSERT(m.contains_sample(s));
+        return m.buf[s % Capacity];
+    }
 };
 
 

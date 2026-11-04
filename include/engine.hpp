@@ -25,9 +25,12 @@ struct Engine{
         , gui(*this, window.m_renderer, window.m_window, window.m_main_scale)
     {}
     ~Engine()=default;
-    static std::vector<TrackerStage> tracker_stages(){
+    static auto tracker_stages() -> std::vector<TrackerStage>{
         return {trk_input,trk_draw,trk_gui,trk_present};
     };
+    static auto tracker_frametime() -> TrackerStage const&{
+        return trk_frametime;
+    }
 
     void run();
     Window window;

@@ -1,7 +1,9 @@
 #include "engine.hpp"
+#include "gui.hpp"
 #include "metrics.hpp"
 void Engine::run(){
     while (!window.shouldClose){
+        auto _ = trk_frametime.tracker.push_scope_duration();
         {
             auto _ = trk_input.tracker.push_scope_duration();
             window.handle_inputs();

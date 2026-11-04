@@ -18,6 +18,11 @@ struct TrackerStage{
     glm::vec4 gr_line= util::_01rgb(0,0,0);
     MTR::DurationTracker tracker{};
 };
+inline TrackerStage trk_frametime{
+    .name = "Frametime",
+    .gr_fill = util::_01rgb(196,196,196),
+    .gr_line = util::_01rgb(255,255,255),
+};
 inline TrackerStage trk_input{
     .name = "Input",
     .gr_fill = util::_01rgb(255,0,0),
