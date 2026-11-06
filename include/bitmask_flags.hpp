@@ -46,8 +46,8 @@ namespace traits{
 #define ENUM_WITH_BITWISE enum struct TRAITS_ENABLE_ENUM_BITWISE
 #endif
 
-template<typename T> requires is_enum<T>
-constexpr inline bool enable_enum_bitwise = traits::concepts::type_has_trait<T, traits::enable_enum_bitwise_t>;
+template<typename T>
+constexpr inline bool enable_enum_bitwise = is_scoped_enum<T> && traits::concepts::type_has_trait<T, traits::enable_enum_bitwise_t>;
 
 // Enable bitwise OR between Flags types
 template<typename E>

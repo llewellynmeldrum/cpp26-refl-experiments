@@ -11,10 +11,6 @@
 #include "glm/vec4.hpp"
 
 struct Window{
-    
-
-
-
     Window(std::string a_name, glm::ivec2 window_logical_extent);
     ~Window();
     auto begin_frame(glm::vec2 framebuffer_scale) ->void;

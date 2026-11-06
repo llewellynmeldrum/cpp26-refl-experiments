@@ -21,7 +21,7 @@ struct Engine{
     NO_COPY_ASSN(Engine)
 
     Engine() 
-        : window ("Test window", glm::ivec2{1300,800}) 
+        : window ("Test window", glm::ivec2{1600,900}) 
         , gui(*this, window.m_renderer, window.m_window, window.m_main_scale)
     {}
     ~Engine()=default;

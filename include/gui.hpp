@@ -11,38 +11,49 @@
 
 FORWARD_DECLARE_STRUCT( Engine );
 
+struct DrawContext{
+    glm::vec2 window_extent = glm::vec2{ImGui::GetMainViewport()->WorkSize};
+    auto uv2logical_extent(glm::vec2 uv) const noexcept -> glm::vec2{
+        ASSERT(uv.x >= 0 && uv.y >= 0);
+        return uv * window_extent;
+    }
+};
+
+
+FORWARD_DECLARE_STRUCT(ImPlotItem);
+
 struct TrackerStage{
     zstring_view name{"n/a"};
     zstring_view hint{"n/a"};
     glm::vec4 gr_fill= util::_01rgb(0,0,0);
-    glm::vec4 gr_line= util::_01rgb(0,0,0);
+    auto gr_line() const noexcept -> glm::vec4{
+        return gr_fill * 0.85f;
+    }
     MTR::DurationTracker tracker{};
+    auto im_id() const noexcept -> std::string;
+    auto check_enabled() noexcept -> bool;
+    bool was_enabled_this_frame = false;
 };
 inline TrackerStage trk_frametime{
     .name = "Frametime",
     .gr_fill = util::_01rgb(196,196,196),
-    .gr_line = util::_01rgb(255,255,255),
 };
 inline TrackerStage trk_input{
     .name = "Input",
-    .gr_fill = util::_01rgb(255,0,0),
-    .gr_line = util::_01rgb(128,0,0),
+    .gr_fill = util::_01rgb(230, 81, 66),
 };
 
 inline TrackerStage trk_draw{
     .name = "Draw",
-    .gr_fill = util::_01rgb(255,255,0),
-    .gr_line = util::_01rgb(128,128,0),
+    .gr_fill = util::_01rgb(245, 239, 12),
 };
 inline TrackerStage trk_gui{
     .name = "Gui",
-    .gr_fill = util::_01rgb(0,255,0),
-    .gr_line = util::_01rgb(0,128,0),
+    .gr_fill = util::_01rgb(36, 235, 35),
 };
 inline TrackerStage trk_present{
     .name = "Present",
-    .gr_fill = util::_01rgb(0,0,255),
-    .gr_line = util::_01rgb(0,0,128),
+    .gr_fill = util::_01rgb(29, 123, 222),
 };
 struct Gui{
     Gui(Engine const& engine, SDL_Renderer* renderer, SDL_Window* window, f32 main_scale)
@@ -56,12 +67,15 @@ struct Gui{
     ~Gui(){
         shutdown();
     }
+    auto portion_of_framebuf(glm::vec2 uv);
     Engine const& m_eng; 
     SDL_Renderer* m_renderer;
     SDL_Window* m_window;
     f32 m_main_scale;
 
+    glm::vec2 lg_screen_extent;
     auto init() -> void;
+    auto update() -> void; // STUB
     auto shutdown() ->void;
 #if CPP26
     template<typename T>

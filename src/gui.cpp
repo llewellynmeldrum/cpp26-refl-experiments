@@ -17,6 +17,8 @@ struct GuiSettings{
     f32 font_size = 20.0f;
 
 };
+auto Gui::update() -> void{
+}
 auto Gui::init() -> void{
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
@@ -63,24 +65,20 @@ auto Gui::draw() -> void{
     auto spec0 = ui::WindowSpec{"Frametime"} 
         .disable_docking()
         #if CPP26
-        .set_flags(ui::WindowFlagBits::eNoBackground | ui::WindowFlagBits::eNoDecoration)
-        #endif
-    ;
-    auto spec1 = ui::WindowSpec{"Frametime Breakdown"} 
-        .disable_docking()
-        #if CPP26
-        .set_flags(ui::WindowFlagBits::eNoBackground | ui::WindowFlagBits::eNoDecoration)
+        .set_flags(ui::WindowFlagBits::eNone)
         #endif
     ;
     if(auto window = ui::begin_scope(spec0)){
-        display_frametime_graph(spec0.title, m_eng.tracker_frametime());
+        display_frametime_graph(m_eng.tracker_frametime(), DrawContext{}, false);
+        display_stacked_frametime_breakdown_graph("Frametime Breakdown###stacked_ft",m_eng.tracker_stages(), DrawContext{},false);
     }
-    if(auto window = ui::begin_scope(spec1)){
-        display_stacked_frametime_breakdown_graph(spec1.title, m_eng.tracker_stages());
+    if(auto window = ui::begin_scope(spec0.set_title("(verbose)"))){
+        display_frametime_graph(m_eng.tracker_frametime(), DrawContext{}, true);
+        display_stacked_frametime_breakdown_graph("Frametime Breakdown###stacked_ft_verbose",m_eng.tracker_stages(), DrawContext{},true);
     }
-    if (true /*cfg.draw_implot_demo()*/){
-        ImPlot::ShowDemoWindow();
-    }
+//    if (true /*cfg.draw_implot_demo()*/){
+//        ImPlot::ShowDemoWindow();
+//    }
     m_frame_count++;
 }
 

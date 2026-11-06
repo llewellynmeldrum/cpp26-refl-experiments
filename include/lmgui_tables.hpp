@@ -115,9 +115,15 @@ struct TableSpec{
     std::string title{""};
     TableFlags flags;
     std::vector<TableColumnHeader> headers{};
+    std::size_t push_style_count{};
     
     SPEC_SETTER(std::string_view, title);
     SPEC_SETTER(TableFlags, flags);
+    auto && set_cell_padding(this auto&& m, glm::vec2 v){
+        ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, v);
+        m.push_style_count++;
+        return std::forward<decltype(m)>(m);
+    }
     auto&& set_column_headers(this auto&& m, std::vector<TableColumnHeader> headers) {
         m.headers.assign_range(headers);
         return std::forward<decltype(m)>(m);
@@ -134,6 +140,7 @@ struct TableScope{
         : title(info.title)
         , flags(info.flags)
         , headers(info.headers)
+        , push_style_count(info.push_style_count)
     {
         isVisible = ImGui::BeginTable(title.c_str(), headers.size(), flags.raw());
         if (isVisible){
@@ -141,6 +148,7 @@ struct TableScope{
         }
     }
     ~TableScope(){
+        ImGui::PopStyleVar(push_style_count);
         if (isVisible){
             isVisible = false; 
             ImGui::EndTable();
@@ -177,6 +185,7 @@ struct TableScope{
     TableFlags flags;
     bool isVisible = false;
     std::vector<TableColumnHeader> headers{};
+    std::size_t push_style_count;
 };
 inline auto TableScope::setup_headers(std::span<const TableColumnHeader> headers) -> void {
     for (const auto &column : headers) {

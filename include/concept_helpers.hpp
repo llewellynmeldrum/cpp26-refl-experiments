@@ -12,6 +12,9 @@ template<typename T>
 concept is_enum = std::is_enum_v<T>;
 
 template<typename T>
+concept is_scoped_enum = std::is_scoped_enum_v<T>;
+
+template<typename T>
 using nocvref = std::remove_cvref_t<T>;
 
 template<typename T>

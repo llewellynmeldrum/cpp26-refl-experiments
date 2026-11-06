@@ -8,6 +8,7 @@
 
 
 */
+#include <limits>
 #include <ranges>
 #include <span>
 #include <type_traits>
@@ -27,9 +28,15 @@ template<typename T> requires is_numeric<T>
 auto nth_percentile_avg(std::span<const T> a_span, f64 p) -> T{
     ASSERT(0.0<p && p<1.0); // 0.99 == 99th percentile
     auto v = std::vector(std::from_range, a_span);
-    auto idx = std::clamp<size_t>(
-        std::ceil(p*v.size()), 1, v.size()
-    ) - 1;
+    if (v.size() == 0){
+        return T{0};
+    }else if (v.size() == 1){
+        return a_span[0];
+    }
+    auto rank = st_cast<size_t>(
+        std::ceil(p * f64(v.size()))
+    );
+    auto idx = std::clamp<size_t>(rank, 1, v.size()) - 1;
     auto nth = v.begin() + static_cast<std::ptrdiff_t>(idx);
     std::ranges::nth_element(v, nth);
     return v[idx];
@@ -100,6 +107,42 @@ struct HistoryBuffer{
     constexpr auto sample(this auto& m, u64 s) -> decltype(auto){
         ASSERT(m.contains_sample(s));
         return m.buf[s % Capacity];
+    }
+
+
+    constexpr auto mean() const -> T{
+        auto const n = valid_samples();
+        auto sum = T{0};
+        for (auto i = 0uz; i<n; i++){
+            sum+=buf[i];
+        }
+        return sum/n;
+    }
+    constexpr auto max() const -> T{
+        auto const n = valid_samples();
+        auto res = std::numeric_limits<T>::lowest();
+        for (auto i = 0uz; i<n; i++){
+            res = std::max(res,buf[i]);
+        }
+        return res;
+    }
+    constexpr auto std_dev() const -> T{
+        auto const N = valid_samples();
+        auto const avg = mean();
+        auto squared_differences = T{0};
+
+        for (auto i = 0uz; i<N; i++){
+            squared_differences += std::pow(buf[i] - avg,2);
+        }
+
+        auto const variance = squared_differences / N ;
+        return std::sqrt(variance);
+    }
+    constexpr auto p95() const -> T{
+        return nth_percentile_avg(std::span(buf.begin(), buf.begin() + valid_samples()), 0.95);
+    }
+    constexpr auto p99() const -> T{
+        return nth_percentile_avg(std::span(buf.begin(), buf.begin() + valid_samples()), 0.99);
     }
 };
 
