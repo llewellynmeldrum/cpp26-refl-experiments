@@ -11,7 +11,14 @@
 
 FORWARD_DECLARE_STRUCT( Engine );
 
-struct DrawContext{
+enum struct OverlayMode{
+    Hidden CFG_NOTE("All graphs are hidden."),
+    Minimal CFG_NOTE("A small sparkline frametime graph is shown."),
+    BreakdownOnly CFG_NOTE("A full sized breakdown of subsystem contribution to frametime is shown."),
+    Full CFG_NOTE("Everything is shown."),
+};
+struct GuiDrawContext{
+    OverlayMode overlay_mode;
     glm::vec2 window_extent = glm::vec2{ImGui::GetMainViewport()->WorkSize};
     auto uv2logical_extent(glm::vec2 uv) const noexcept -> glm::vec2{
         ASSERT(uv.x >= 0 && uv.y >= 0);
@@ -67,7 +74,7 @@ struct Gui{
     ~Gui(){
         shutdown();
     }
-    auto portion_of_framebuf(glm::vec2 uv);
+    OverlayMode overlay_mode{OverlayMode::Minimal};
     Engine const& m_eng; 
     SDL_Renderer* m_renderer;
     SDL_Window* m_window;

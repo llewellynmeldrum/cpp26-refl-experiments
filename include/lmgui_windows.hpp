@@ -69,6 +69,10 @@ struct WindowSpec{
 
     SPEC_SETTER(std::string_view, title);
     SPEC_SETTER(WindowFlags, flags);
+    auto add_flags(this auto&&m, WindowFlagBits const &var) -> auto && {
+        m.flags |= var;
+        return std::forward<decltype(m)>(m);
+    };
     SPEC_SETTER(glm::vec2, pos);
     SPEC_SETTER(glm::vec2, size);
     SPEC_SETTER(glm::vec2, pivot);

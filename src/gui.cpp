@@ -11,6 +11,7 @@
 #include "cfg_gui.hpp"
 #include "gui_metrics.hpp"
 #include "engine.hpp"
+#include "lmgui_general.hpp"
 #include "lmgui_windows.hpp"
 
 struct GuiSettings{
@@ -60,7 +61,12 @@ auto Gui::end_frame() -> void{
     ImGui_ImplSDLRenderer3_RenderDrawData(ig::GetDrawData(), m_renderer);
 }
 
-auto Gui::draw() -> void{
+
+auto draw_frametime_overlay(
+    TrackerStage frametime_tracker,
+    std::vector<TrackerStage> stages_tracker,
+    OverlayMode& overlay_mode
+) -> void{
     auto io = ig::GetIO();
     auto spec0 = ui::WindowSpec{"Frametime"} 
         .disable_docking()
@@ -68,17 +74,31 @@ auto Gui::draw() -> void{
         .set_flags(ui::WindowFlagBits::eNone)
         #endif
     ;
+    if (overlay_mode == OverlayMode::Hidden|| overlay_mode == OverlayMode::Minimal || overlay_mode == OverlayMode::BreakdownOnly){
+        spec0.add_flags(ui::WindowFlagBits::eNoBackground);
+    }
     if(auto window = ui::begin_scope(spec0)){
-        display_frametime_graph(m_eng.tracker_frametime(), DrawContext{}, false);
-        display_stacked_frametime_breakdown_graph("Frametime Breakdown###stacked_ft",m_eng.tracker_stages(), DrawContext{},false);
+        ui::EnumDropdown("Overlay Mode", overlay_mode);
+        GuiDrawContext dctx{
+            .overlay_mode = overlay_mode
+        };
+        auto stats = HistoryBufferStats(frametime_tracker.tracker.hbuf);
+        auto const title_w_stats = stats.summary();
+        if (overlay_mode == OverlayMode::Full){
+            draw_frametime_graph(stats,frametime_tracker, dctx, title_w_stats);
+            draw_stacked_frametime_breakdown_graph(stages_tracker, dctx, "##");
+        }else if (overlay_mode ==OverlayMode::BreakdownOnly){
+            draw_stacked_frametime_breakdown_graph(stages_tracker, dctx, title_w_stats);
+        }else if (overlay_mode ==OverlayMode::Minimal){
+            sparkline(frametime_tracker, {"frametime", 1.0f, stats});
+        }else if (overlay_mode == OverlayMode::Hidden){
+            // nothing
+        }
     }
-    if(auto window = ui::begin_scope(spec0.set_title("(verbose)"))){
-        display_frametime_graph(m_eng.tracker_frametime(), DrawContext{}, true);
-        display_stacked_frametime_breakdown_graph("Frametime Breakdown###stacked_ft_verbose",m_eng.tracker_stages(), DrawContext{},true);
-    }
-//    if (true /*cfg.draw_implot_demo()*/){
-//        ImPlot::ShowDemoWindow();
-//    }
+
+}
+auto Gui::draw() -> void{
+    draw_frametime_overlay(m_eng.tracker_frametime(), m_eng.tracker_stages(),overlay_mode);
     m_frame_count++;
 }
 
